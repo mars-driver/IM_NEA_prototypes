@@ -1,4 +1,4 @@
-# prototype to test signing up
+# prototype to test logging in
 
 import re # regex module to assist with validity checks
 import PySimpleGUI as sg # library for GUI
