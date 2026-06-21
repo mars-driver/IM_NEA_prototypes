@@ -1,3 +1,6 @@
+import sign_up
+import PySimpleGUI as sg # library for GUI
+
 # GUI
 def proto_GUI_signup():
     layout = [[sg.Text("enter username:")],
@@ -15,7 +18,7 @@ def proto_GUI_signup():
         if event == sg.WINDOW_CLOSED or event == 'quit':
             break
         if event == "ok":
-            success = proto_sign_up(values.values())
+            success = sign_up.proto_sign_up(values.values())
             if success == True:
                 window["OUTPUT"].update("sign up successful!")
                 print("Success")
