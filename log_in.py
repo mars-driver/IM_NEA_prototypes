@@ -23,4 +23,4 @@ def proto_log_in(values, accounts):
         return "Password invalid."
     if proto_is_locked(accounts[username]) == True:
         return "Account locked."
-    return True
+    return "Login successful."

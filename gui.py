@@ -10,18 +10,13 @@ def proto_GUI_login(accounts):
               [sg.Input(key="PASSWORD")],
               [sg.Button("forgot password")],
               [sg.Text(size=(40, 1), key="OUTPUT")],
+              [sg.Text("Don't have an account?"), sg.Button("sign up")],
               [sg.Button("ok"), sg.Button("quit")]]
     window = sg.Window("PROTO log in", layout)
     while True:
-        success = False
         event, values = window.read()
         if event == sg.WINDOW_CLOSED or event == 'quit':
             break
         if event == "ok":
-            success = log_in.proto_log_in(values.values(), accounts)
-            if success == True:
-                window["OUTPUT"].update("log in successful!")
-                print("Success")
-                return values
-            else:
-                window["OUTPUT"].update(success)
+            result = log_in.proto_log_in(values.values(), accounts)
+            window["OUTPUT"].update(result)
