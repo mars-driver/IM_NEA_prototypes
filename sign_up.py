@@ -20,7 +20,7 @@ def proto_valid_password(newPassword):
         return True
     return False
 
-def proto_sign_up(values):
+def proto_sign_up(values, accounts):
     username, email, password = values
     while proto_valid_new_username(username, accounts) == False:
          return "Username invalid."
