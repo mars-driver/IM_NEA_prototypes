@@ -15,7 +15,7 @@ print(f"Connection from {addr} has been established")
 data = client_socket.recv(1024).decode()
 print(f"Recieved data: {data}")
 
-response = "Hello from the server! This is Mars' laptop!"
+response = "Hello from the server!"
 client_socket.send(response.encode())
 print("Response sent to the client.")
 
