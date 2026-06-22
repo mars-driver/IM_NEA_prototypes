@@ -1,24 +1,29 @@
 import socket
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def connect():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-hostname = socket.gethostname()
-ip = socket.gethostbyname(hostname)
-server_socket.bind((ip, 12345))
+    hostname = socket.gethostname()
+    ip = socket.gethostbyname(hostname)
+    server_socket.bind((ip, 12345))
 
-server_socket.listen(1)
-print("Server is listening on port 12345...")
+    server_socket.listen(1)
+    print("Server is listening on port 12345...")
 
-client_socket, addr = server_socket.accept()
-print(f"Connection from {addr} has been established")
+    client_socket, addr = server_socket.accept()
+    print(f"Connection from {addr} has been established")
 
-data = client_socket.recv(1024).decode()
-print(f"Recieved data: {data}")
+    return server_socket, client_socket, addr
 
-response = "Hello from the server!"
-client_socket.send(response.encode())
-print("Response sent to the client.")
+def receive_data(client_socket):
+    message_in = client_socket.recv(1024).decode()
+    print(f"Recieved data: {message_in}")
+    return message_in
 
-client_socket.close()
-server_socket.close()
-print("Server closed.")
+def send_data(client_socket, message_out):
+    client_socket.send(message_out.encode())
+    print("Response sent to the client.")
+
+def close_connection(a_socket):
+    a_socket.close()
+    print("Socket closed.")
