@@ -18,4 +18,3 @@ accounts = {
 
 
 print(gui.proto_GUI_signup(accounts))
-print(gui.proto_GUI_login(accounts))

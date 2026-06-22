@@ -22,6 +22,9 @@ def proto_GUI_signup(accounts):
         if event == "ok":
             result = sign_up.proto_sign_up(values.values(), accounts)
             window["OUTPUT"].update(result)
+        if event == "log in":
+            window.close()
+            print(proto_GUI_login(accounts))
 
 
 def proto_GUI_login(accounts):
@@ -42,3 +45,6 @@ def proto_GUI_login(accounts):
         if event == "ok":
             result = log_in.proto_log_in(values.values(), accounts)
             window["OUTPUT"].update(result)
+        if event == "sign up":
+            window.close()
+            print(proto_GUI_signup(accounts))
