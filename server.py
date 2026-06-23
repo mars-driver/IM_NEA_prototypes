@@ -24,6 +24,6 @@ def send_data(client_socket, message_out):
     client_socket.send(message_out.encode())
     print("Response sent to the client.")
 
-def close_connection(a_socket):
-    a_socket.close()
+def close_connection(server_socket):
+    server_socket.close()
     print("Socket closed.")

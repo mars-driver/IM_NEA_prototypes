@@ -8,3 +8,4 @@ print(f'IP: {ip}')
 import gui
 
 gui.proto_GUI_connect()
+print("now what")
