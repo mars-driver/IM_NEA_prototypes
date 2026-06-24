@@ -5,7 +5,11 @@ ip = socket.gethostbyname(hostname)
 print(f'Hostname: {hostname}')
 print(f'IP: {ip}')
 
-import gui
 
-gui.proto_GUI_connect()
-print("now what")
+import gui
+import server
+
+#server_socket, client_socket, addr = server.connect()
+#gui.proto_GUI_server(server_socket, client_socket, addr)
+
+server.run_server()
