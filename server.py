@@ -2,13 +2,15 @@ import socket
 import threading
 
 # CONSTANTS
-host = "192.168.1.122"
+homehost = "192.168.1.122"
+schoolhost = "10.56.80.136"
+localhost = "127.0.0.1"
 port = 12345
 
 def connect():
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((host, port))
+    server.bind((homehost, port))
     server.listen(1)
     print("Server is listening on port 12345...")
 
@@ -23,7 +25,7 @@ def connect():
 # OLD
 def receive_data(client):
     message_in = client.recv(1024).decode()
-    print(f"Recieved data: {message_in}")
+    print(f"Received data: {message_in}")
     return message_in
 
 def send_data(client, message_out):
