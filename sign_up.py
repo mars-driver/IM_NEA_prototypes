@@ -4,7 +4,8 @@ def proto_valid_new_username(newUsername, accounts):
     return newUsername.isalnum() and newUsername not in accounts
 
 def proto_valid_email(newEmail):
-    newEmail = newEmail.split("@")
+    newEmail = [item for item in newEmail.split("@") if item != ""]
+    print("newEmail:", newEmail)
     if len(newEmail) != 2:
         return False
     if "." not in newEmail[1]:
