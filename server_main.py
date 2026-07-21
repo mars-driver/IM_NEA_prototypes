@@ -6,7 +6,7 @@ print(f'Hostname: {hostname}')
 print(f'IP: {ip}')
 
 
-import gui
+# import gui
 import server
 
 #server_socket, client_socket, addr = server.connect()
