@@ -14,12 +14,12 @@ def connect():
     server.listen(1)
     print("Server is listening on port 12345...")
 
-    client, addr = server.accept()
-    print(f"Connection from {addr} has been established")
+    #client, addr = server.accept()
+    #print(f"Connection from {addr} has been established")
 
     clients = {}
 
-    return server, client, addr, clients
+    return server, clients
 
 
 # OLD
@@ -43,35 +43,38 @@ class Client:
     def __init__(self, name):
         self.name = name
 
-def broadcast(clients, message):
+def broadcast(message, clients):
     for client in clients.keys():
+        print(client)
+        print(clients.keys())
         client.send(message)
 
-def handle(clients, client):
+def handle(client, clients):
     while True:
         try:
             message = client.recv(1024).decode()
-            broadcast(clients, message.encode())
+            broadcast(message.encode(), clients)
         except:
-            broadcast(clients, f"{clients[client].name} left the chat".encode())
+            broadcast(f"{clients[client].name} left the chat".encode(), clients)
             clients.pop(client)
             break
 
 def receive(server, clients):
     while True:
         client, address = server.accept()
+        print(client)
         print(f"Connected with {str(address)}")
         client.send("NAME".encode())
         name = client.recv(1024).decode()
         clients[client] = Client(name)
         print(f"Name of the client is {name}.")
-        broadcast(clients, f"{name} joined the chat.".encode())
+        broadcast(f"{name} joined the chat.".encode(), clients)
         client.send("Connected to server.".encode())
 
-        thread = threading.Thread(target=handle, args=(clients, client))
+        thread = threading.Thread(target=handle, args=(client, clients))
         thread.start()
 
 
 def run_server():
-    server, client, addr, clients = connect()
+    server, clients = connect()
     receive(server, clients)

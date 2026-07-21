@@ -40,9 +40,9 @@ def receive(client, name):
             client.close()
             break
 
-def write(client, name):
+def write(client, name, message_out):
     while True:
-        message = f"{name}: {input()}"
+        message = f"{name}: {message_out}"
         client.send(message.encode())
 
 def start_threads(client, name):
@@ -55,3 +55,4 @@ def start_threads(client, name):
 def run_client(server_ip):
     client, name = connect(server_ip)
     start_threads(client, name)
+    return client
