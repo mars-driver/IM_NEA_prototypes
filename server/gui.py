@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 import threading
-from server import connect, run_server, receive, broadcast
+from server import run_server, new_client
 
 def proto_GUI_server(port):
 
@@ -17,9 +17,11 @@ def proto_GUI_server(port):
     # initialising & running server
     clients = {}
     messages = []
-    server_address, server = run_server(port)
-    #window.start_thread(lambda: receive(server, clients, start_handle_thread, window), ('-THREAD-', '-THREAD ENDED-'))
-    receive(server, clients, start_handle_thread, window)
+    server_address, server = run_server(port, window)
+    #window.start_thread(lambda: receive(server, clients, start_handle_thread, window), ("-THREAD-", "-THREAD ENDED-"))
+    #receive(server, clients, start_handle_thread, window)
+    newclient_thread = threading.Thread(target=new_client, args=(server, clients, window))
+    newclient_thread.start()
 
     # --------------------- EVENT LOOP ---------------------
     while True:
@@ -31,26 +33,10 @@ def proto_GUI_server(port):
                 event_key = (event[0], event[1])
                 message = values[event_key]
                 messages = update_display(message, messages, window)
+        elif event == "-PRINT-":
+            message = "".join(values["-PRINT-"])
+            update_display(message, messages, window)
 
-
-
-# threading !
-
-def handle(client, clients, window):
-    while True:
-        try:
-            message = client.recv(1024).decode()
-            broadcast(message.encode(), clients)
-            window.write_event_value(('-THREAD-', 'SEND MESSAGE'), message)
-        except:
-            broadcast(f"{clients[client].name} left the chat".encode(), clients)
-            clients.pop(client)
-            break
-
-def start_handle_thread(client, clients, window):
-    handle_thread = threading.Thread(target=handle, args=(client, clients, window))
-    handle_thread.start()
-    #window.start_thread(lambda: handle(client, clients, window), ('-THREAD-', '-THREAD ENDED-'))
 
 def update_display(message, messages, window):
     messages.append(message)
@@ -60,6 +46,28 @@ def update_display(message, messages, window):
         window["-OUTPUT1-"].update(messages[-2])
         window["-OUTPUT2-"].update(messages[-1])
     return messages
+
+# threading !
+
+"""
+
+def handle(client, clients, window):
+    while True:
+        try:
+            message = client.recv(1024).decode()
+            broadcast(message.encode(), clients)
+            window.write_event_value(("-THREAD-", "SEND MESSAGE"), message)
+        except:
+            broadcast(f"{clients[client].name} left the chat".encode(), clients)
+            clients.pop(client)
+            break
+
+def start_handle_thread(client, clients, window):
+    handle_thread = threading.Thread(target=handle, args=(client, clients, window))
+    handle_thread.start()
+    #window.start_thread(lambda: handle(client, clients, window), ("-THREAD-", "-THREAD ENDED-"))
+    
+"""
 
 
 
