@@ -1,86 +1,59 @@
 import PySimpleGUI as sg
 import threading
-from server import CustomThread, connect, run_server, receive
+from server import connect, run_server, receive, broadcast
 
 def proto_GUI_server(port):
 
-    clients = {}
-    server_address, server = run_server(port)
-    print("connected.")  # todo
-
+    # window creation
     layout = [[sg.VPush()],
               [sg.Text("THIS IS THE SERVER")],
-              [sg.Text("Server address:"), sg.Text(server_address)],
+              [sg.Text("Server address:"), sg.Text("", key="-ADDRESS-")],
               [sg.Text("Message log:")],
-              [sg.Text(size=(40, 1), key="OUTPUT1")],
-              [sg.Text(size=(40, 1), key="OUTPUT2")],
+              [sg.Text(size=(40, 1), key="-OUTPUT1-")],
+              [sg.Text(size=(40, 1), key="-OUTPUT2-")],
               [sg.VPush()]]
     window = sg.Window("PROTO server", layout, resizable=True, element_justification="center")
 
-    while True:
-        event, values = window.read(timeout=100)
-        #client, address, name, clients = receive(server, clients)
-        receive_thread = CustomThread(target=receive, args=(server, clients))
-        receive_thread.start()
-        #return_values = receive_thread.join() # WHY
-        print(receive_thread.join()) #todo
-        print("values printed")
-
-        #message, clients = server.handle(client, clients)
-        if event == sg.WINDOW_CLOSED:
-            break
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-def proto_GUI_server(server_socket, client_socket, addr):
-    layout = [[sg.Text("THIS IS THE SERVER")],
-              [sg.Text(addr)],
-              [sg.Text(size=(40, 1), key="OUTPUT1")],
-              [sg.Text(size=(40, 1), key="OUTPUT2")],
-              [sg.Text("Type message here: ")],
-              [sg.Input(key="MESSAGE OUT")],
-              [sg.Button("send"), sg.Button("quit")]]
-    window = sg.Window("PROTO server", layout, resizable=True)
+    # initialising & running server
+    clients = {}
     messages = []
+    server_address, server = run_server(port)
+    receive(server, clients, start_handle_thread, window)
+
+    # --------------------- EVENT LOOP ---------------------
     while True:
         event, values = window.read()
-        if event == "send":
-            message_out = values["MESSAGE OUT"]
-            messages.append(message_out)
-            server.send_data(client_socket, message_out)
-        if event == sg.WINDOW_CLOSED or event == "quit":
+        if event == sg.WINDOW_CLOSED:
             break
+        elif event[0] == "-THREAD-":
+            if event[1] == "SEND MESSAGE":
+                event_key = (event[0], event[1])
+                message = values[event_key]
+                messages = update_display(message, messages, window)
+
+
+
+# threading !
+
+def handle_thread(client, clients, window):
+    while True:
         try:
-            message_in = server.receive_data(client_socket)
-            messages.append(message_in)
+            message = client.recv(1024).decode()
+            broadcast(message.encode(), clients)
+            window.write_event_value(('-THREAD-', 'SEND MESSAGE'), message)
         except:
-            print("exception")
-        if len(messages) > 1: window["OUTPUT1"].update(messages[-2])
-        window["OUTPUT2"].update(messages[-2])
-"""
+            broadcast(f"{clients[client].name} left the chat".encode(), clients)
+            clients.pop(client)
+            break
+
+def start_handle_thread(client, clients, window):
+    window.start_thread(lambda: handle_thread(client, clients, window), ('-THREAD-', '-THREAD ENDED-'))
+
+def update_display(message, messages, window):
+    messages.append(message)
+    if len(messages) == 1:
+        window["-OUTPUT1-"].update(message)
+    else:
+        window["-OUTPUT1-"].update(messages[-2])
+        window["-OUTPUT2-"].update(messages[-1])
+    return messages

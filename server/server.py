@@ -1,21 +1,4 @@
 import socket
-import threading
-
-# overriding the Thread class to return values
-class CustomThread(threading.Thread):
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, verbose=None):
-        # Initializing the Thread class
-        super().__init__(group, target, name, args, kwargs)
-        self._return = None
-
-    def run(self):
-        if self._target is not None:
-            self._return = self._target(*self._args, **self._kwargs)
-
-    def join(self, timeout=None):
-        super().join(timeout)
-        return self._return
-
 
 def get_server_address():
     hostname = socket.gethostname()
@@ -35,25 +18,10 @@ class Client:
 
 def broadcast(message, clients):
     for client in clients.keys():
-        print(client) #todo
-        print(clients.keys()) #todo
         client.send(message)
 
-def handle(client, clients):
-    while True:
-        try:
-            message = client.recv(1024).decode()
-            broadcast(message.encode(), clients)
-            print("broken") #todo
-        except:
-            broadcast(f"{clients[client].name} left the chat".encode(), clients)
-            clients.pop(client)
-            return f"{clients[client].name} left the chat", clients
-
-def receive(server, clients):
-    client, address = server.accept()
-    print("broken") #todo
-    print(client) #todo
+def receive(server, clients, start_handle_thread, window):
+    client, address = server.accept() # this waits until a client connects
     print(f"Connected with {str(address)}")
     client.send("NAME".encode())
     name = client.recv(1024).decode()
@@ -61,16 +29,10 @@ def receive(server, clients):
     print(f"Name of the client is {name}.")
     broadcast(f"{name} joined the chat.".encode(), clients)
     client.send("Connected to server.".encode())
-    print("last message before i try returning valuessss")
-    thread = CustomThread(target=handle, args=(client, clients))
-    thread.start()
-    return_values = thread.join()
-    print("time to return the values")
-    print("RETURN VALUES:", return_values)
-    return client, address, name, clients, return_values
+    start_handle_thread(client, clients, window) # threading!
+    return client, address, name, clients
 
 def run_server(port):
     host = get_server_address()
     server = connect(host, port)
-    receive(server, {})
-    return server
+    return host, server
