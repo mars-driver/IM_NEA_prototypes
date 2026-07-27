@@ -18,6 +18,7 @@ def proto_GUI_server(port):
     clients = {}
     messages = []
     server_address, server = run_server(port)
+    #window.start_thread(lambda: receive(server, clients, start_handle_thread, window), ('-THREAD-', '-THREAD ENDED-'))
     receive(server, clients, start_handle_thread, window)
 
     # --------------------- EVENT LOOP ---------------------
@@ -35,7 +36,7 @@ def proto_GUI_server(port):
 
 # threading !
 
-def handle_thread(client, clients, window):
+def handle(client, clients, window):
     while True:
         try:
             message = client.recv(1024).decode()
@@ -47,7 +48,9 @@ def handle_thread(client, clients, window):
             break
 
 def start_handle_thread(client, clients, window):
-    window.start_thread(lambda: handle_thread(client, clients, window), ('-THREAD-', '-THREAD ENDED-'))
+    handle_thread = threading.Thread(target=handle, args=(client, clients, window))
+    handle_thread.start()
+    #window.start_thread(lambda: handle(client, clients, window), ('-THREAD-', '-THREAD ENDED-'))
 
 def update_display(message, messages, window):
     messages.append(message)
@@ -57,3 +60,50 @@ def update_display(message, messages, window):
         window["-OUTPUT1-"].update(messages[-2])
         window["-OUTPUT2-"].update(messages[-1])
     return messages
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+def proto_GUI_server(server_socket, client_socket, addr):
+    layout = [[sg.Text("THIS IS THE SERVER")],
+              [sg.Text(addr)],
+              [sg.Text(size=(40, 1), key="OUTPUT1")],
+              [sg.Text(size=(40, 1), key="OUTPUT2")],
+              [sg.Text("Type message here: ")],
+              [sg.Input(key="MESSAGE OUT")],
+              [sg.Button("send"), sg.Button("quit")]]
+    window = sg.Window("PROTO server", layout, resizable=True)
+    messages = []
+    while True:
+        event, values = window.read()
+        if event == "send":
+            message_out = values["MESSAGE OUT"]
+            messages.append(message_out)
+            server.send_data(client_socket, message_out)
+        if event == sg.WINDOW_CLOSED or event == "quit":
+            break
+        try:
+            message_in = server.receive_data(client_socket)
+            messages.append(message_in)
+        except:
+            print("exception")
+        if len(messages) > 1: window["OUTPUT1"].update(messages[-2])
+        window["OUTPUT2"].update(messages[-2])
+"""

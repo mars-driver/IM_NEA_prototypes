@@ -30,7 +30,6 @@ def receive(server, clients, start_handle_thread, window):
     broadcast(f"{name} joined the chat.".encode(), clients)
     client.send("Connected to server.".encode())
     start_handle_thread(client, clients, window) # threading!
-    return client, address, name, clients
 
 def run_server(port):
     host = get_server_address()
