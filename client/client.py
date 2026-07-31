@@ -7,23 +7,28 @@ class ChatClient:
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.name = None
+        self.window = None
 
-    def _input_and_send_loop(self):
-        while True:
-            message = input()
-            print("> " + message)
-            message_out = f"{self.name}: {message}"
-            self.socket.send(message_out.encode("utf8"))
+    def send(self, message):
+        message_out = f"{self.name}: {message}"
+        self.socket.send(message_out.encode("utf8"))
+        return message
 
-    def connect(self):
+    def connect(self, name):
         self.socket.connect((self.host, self.port))
-        name = input("Enter your name: ")
         self.name = name
-        threading.Thread(target=self._input_and_send_loop).start()
-        while True:
-            message = self.socket.recv(1024).decode("utf8")
-            if message == "NAME":
-                self.socket.send(name.encode("utf8"))
-                print("Connected.")
-            else:
-                print(message)
+
+    def receive(self, name):
+        message = self.socket.recv(1024).decode("utf8")
+        if message == "NAME":
+            self.socket.send(name.encode("utf8"))
+            print("Connected.")
+            self.window.write_event_value("-CONNECTED-", "")
+        else:
+            print(message)
+
+    def start_threads(self, name):
+        threading.Thread(target=self.receive, args=(name,)).start()
+
+    def close(self):
+        self.socket.close()

@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
-import threading
 import client
+import threading
 
 def proto_GUI_client(server_ip, port):
 
@@ -14,7 +14,7 @@ def proto_GUI_client(server_ip, port):
               [sg.Text(size=(40, 1), key="-OUTPUT4-")],
               [sg.Text(size=(40, 1), key="-OUTPUT5-")],
               [
-                  sg.Push(), sg.Text("Type message here:", size=(15, 1)),
+                  sg.Push(), sg.Text("Enter your name:", size=(15, 1)),
                   sg.Input(size=(15, 1), key="-MESSAGE-"), sg.Button("send", bind_return_key=True),
                   sg.Push()
               ],
@@ -23,15 +23,39 @@ def proto_GUI_client(server_ip, port):
     window = sg.Window("PROTO server", layout, resizable=True, element_justification="center")
 
     # ----------------- RUNNING THE CLIENT -----------------
-    client_socket = client.run_client(server_ip, port)
+    client_object = client.ChatClient(server_ip, port)
+    client_object.window = window
+    connected = False
+    messages = []
+    #client_object.connect()
 
     # --------------------- EVENT LOOP ---------------------
-    while True:
-        event, values = window.read()
+    while not connected:
+        event, values = window.read(timeout=100)
         print("event:", event)
         print("values:", values)
         if event == sg.WINDOW_CLOSED:
             break
+        elif event == "send":
+            name = values["-MESSAGE-"]
+            client_object.connect(name)
+            connected = True
+        elif event == "-CONNECTED-":
+            connected = True
+            print("Connected. (gui)")
+        print(connected)
 
-    client_socket.close()
+    client_object.start_threads(name)
+
+    while True:
+        event, values = window.read(timeout=100)
+        print("event:", event)
+        print("values:", values)
+        if event == sg.WINDOW_CLOSED:
+            break
+        elif event == "send":
+            message = values["-MESSAGE-"]
+            messages.append(message)
+            client_object.send(message)
+
     window.close()

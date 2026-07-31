@@ -53,6 +53,9 @@ class ChatServer:
                 sock, callback = key.fileobj, key.data
                 callback(sock)
 
+    def close(self):
+        self.socket.close()
+
 
 def get_server_address():
     hostname = socket.gethostname()
