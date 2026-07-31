@@ -2,13 +2,13 @@ import socket
 import threading
 
 # CONSTANTS
-port = 12345
+port = 13108
 
 def connect(server_ip):
     name = input("Enter username: ")
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((server_ip, port))
-    print("Connected to the server.")
+    print("I am connected to the server.")
     return client, name
 
 

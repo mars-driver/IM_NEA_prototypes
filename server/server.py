@@ -10,7 +10,7 @@ def connect(host, port):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((host, port))
     server.listen(1)
-    print("Server is listening on port 12345...")
+    print(f"Server is listening on port {port}...")
     return server
 
 def run_server(port):
@@ -38,7 +38,6 @@ def new_client(server, clients):
         name = client.recv(1024).decode()
         clients[client] = Client(name)
         broadcast(f"{name} joined the chat.".encode(), clients)
-        client.send("Connected to server.".encode())
         receive_thread = threading.Thread(target=receive_message, args=(client, clients))
         receive_thread.start()
 
@@ -53,4 +52,4 @@ def receive_message(client, clients):
             print("exception")
             broadcast(f"{clients[client].name} left the chat".encode(), clients)
             clients.pop(client)
-            print("client popped")
+            print("client popped") #todo this doesnt work idt
