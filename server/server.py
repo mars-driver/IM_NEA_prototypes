@@ -24,7 +24,7 @@ def run_server(port):
 def broadcast(message, clients):
     for client in clients.keys():
         client.send(message)
-    print("broadcast: message")
+    print("broadcast:", message)
 
 # WIP BEYOND THIS POINT #
 
