@@ -1,32 +1,13 @@
 import socket
 import threading
 
-# CONSTANTS
-port = 12345
-
-def connect(server_ip):
+def connect(server_ip, port):
     name = input("Enter username: ")
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((server_ip, port))
     print("Connected to the server.")
     return client, name
 
-
-# OLD
-def send_data(client, message_out):
-    client.send(message_out.encode())
-    print("Message sent to server.")
-
-def receive_data(client):
-    message_in = client.recv(1024).decode()
-    print(f"Received response: {message_in}")
-    return message_in
-
-def close_connection(client):
-    client.close()
-    print("Client socket closed.")
-
-# NEW
 def receive(client, name):
     while True:
         try:
@@ -52,6 +33,6 @@ def start_threads(client, name):
     write_thread = threading.Thread(target=write, args=(client,name))
     write_thread.start()
 
-def run_client(server_ip):
-    client, name = connect(server_ip)
+def run_client(server_ip, port):
+    client, name = connect(server_ip, port)
     start_threads(client, name)
