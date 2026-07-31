@@ -52,4 +52,5 @@ def receive_message(client, clients):
             broadcast(f"{clients[client].name} left the chat".encode(), clients)
             print("client is about to be popped")
             clients.pop(client)
-            print("client popped") #todo this doesnt work idt
+            print("client popped")  # todo this doesnt work idt
+            break

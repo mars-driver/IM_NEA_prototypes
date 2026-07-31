@@ -12,10 +12,13 @@ def receive(client, name):
     while True:
         try:
             message = client.recv(1024).decode()
+            print("message:", message)
             if message == "NAME":
                 client.send(name.encode())
+            #elif message == "":
+                #pass
             else:
-                print(message)
+                print("message:", message)
         except:
             print("An error occurred!")
             client.close()
@@ -25,6 +28,9 @@ def write(client, name):
     while True:
         message = f"{name}: {input()}"
         client.send(message.encode())
+
+def send_message(client, message):
+    client.send(message.encode())
 
 def start_threads(client, name):
     receive_thread = threading.Thread(target=receive, args=(client, name))
@@ -36,3 +42,4 @@ def start_threads(client, name):
 def run_client(server_ip, port):
     client, name = connect(server_ip, port)
     start_threads(client, name)
+    return client
