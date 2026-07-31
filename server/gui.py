@@ -29,7 +29,7 @@ def proto_GUI_server(port):
         if event == sg.WINDOW_CLOSED:
             break
         elif event[0] == "-THREAD-":
-            if event[1] == "SEND MESSAGE":
+            if event[1] == "SEND MESSAGE":  #
                 event_key = (event[0], event[1])
                 message = values[event_key]
                 messages = update_display(message, messages, window)
