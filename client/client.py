@@ -1,45 +1,21 @@
 import socket
 import threading
 
-def connect(server_ip, port):
-    name = input("Enter username: ")
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((server_ip, port))
-    print("Connected to the server.")
-    return client, name
 
-def receive(client, name):
-    while True:
-        try:
-            message = client.recv(1024).decode()
-            print("message:", message)
-            if message == "NAME":
-                client.send(name.encode())
-            #elif message == "":
-                #pass
-            else:
-                print("message:", message)
-        except:
-            print("An error occurred!")
-            client.close()
-            break
+class ChatClient:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def write(client, name):
-    while True:
-        message = f"{name}: {input()}"
-        client.send(message.encode())
+    def _input_and_send_loop(self):
+        while True:
+            msg = input()  # <- no argument
+            self.socket.send(msg.encode("utf8"))
 
-def send_message(client, message):
-    client.send(message.encode())
-
-def start_threads(client, name):
-    receive_thread = threading.Thread(target=receive, args=(client, name))
-    receive_thread.start()
-
-    write_thread = threading.Thread(target=write, args=(client,name))
-    write_thread.start()
-
-def run_client(server_ip, port):
-    client, name = connect(server_ip, port)
-    start_threads(client, name)
-    return client
+    def connect(self):
+        self.socket.connect((self.host, self.port))
+        threading.Thread(target=self._input_and_send_loop).start()
+        while True:
+            msg = self.socket.recv(1024).decode("utf8")
+            print(" < " + msg)  # <- added a prefix

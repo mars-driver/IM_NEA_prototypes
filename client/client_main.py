@@ -1,5 +1,5 @@
-import gui
 import client
+import socket
 
 # CONSTANTS
 homeserver_ip = "192.168.1.122"
@@ -7,5 +7,5 @@ schoolserver_ip = "10.56.80.136"
 localhost = "127.0.0.1"
 my_port = 13108
 
-#client.run_client(homeserver_ip, my_port)
-gui.proto_GUI_client(homeserver_ip, my_port)
+client = client.ChatClient(homeserver_ip, my_port)
+client.connect()

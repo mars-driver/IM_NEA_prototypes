@@ -1,56 +1,47 @@
 import socket
-import threading
+import selectors
+
+class ChatServer:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.socket = None
+        self.read_selector = selectors.DefaultSelector() # creates a 'bag' to hold sockets
+        self.write_selector = selectors.DefaultSelector()
+
+    def init_server(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.host, self.port))
+        self.socket.listen()
+        print(f"Server is listening on port {self.port}...")
+        self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection)
+
+    def accept_connection(self, sock):
+        client, _ = sock.accept()
+        print("Registering client...")
+        self.read_selector.register(client, selectors.EVENT_READ, self.receive_message)
+        self.write_selector.register(client, selectors.EVENT_WRITE)
+
+    def receive_message(self, sock):
+        msg = sock.recv(1024)
+        print(msg.decode("utf8"))
+        for key, _ in self.write_selector.select(0):
+            if key.fileobj is not sock:
+                key.fileobj.send(msg)
+
+
+
+    def run(self):
+        self.init_server()
+        print("Running server...")
+        while True:
+            for key, _ in self.read_selector.select():
+                sock, callback = key.fileobj, key.data
+                callback(sock)
+
+
 
 def get_server_address():
     hostname = socket.gethostname()
     ip = socket.gethostbyname(hostname)
     return ip
-
-def connect(host, port):
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((host, port))
-    server.listen(1)
-    print(f"Server is listening on port {port}...")
-    return server
-
-def run_server(port):
-    host = get_server_address()
-    server = connect(host, port)
-    clients = {}
-    newclient_thread = threading.Thread(target=new_client, args=(server, clients))
-    newclient_thread.start()
-    return host, server
-
-def broadcast(message, clients):
-    for client in clients.keys():
-        client.send(message)
-    print("broadcast:", message)
-
-class Client:
-    def __init__(self, name):
-        self.name = name
-
-def new_client(server, clients):
-    while True:
-        client, address = server.accept()
-        print(f"Connected with {str(address)}")
-        client.send("NAME".encode())
-        name = client.recv(1024).decode()
-        clients[client] = Client(name)
-        broadcast(f"{name} joined the chat.".encode(), clients)
-        receive_thread = threading.Thread(target=receive_message, args=(client, clients))
-        receive_thread.start()
-
-
-def receive_message(client, clients):
-    while True:
-        try:
-            message = client.recv(1024).decode()
-            broadcast(message.encode(), clients)
-        except:
-            print("exception")
-            broadcast(f"{clients[client].name} left the chat".encode(), clients)
-            print("client is about to be popped")
-            clients.pop(client)
-            print("client popped")  # todo this doesnt work idt
-            break
