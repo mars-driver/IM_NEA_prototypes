@@ -1,5 +1,6 @@
 import socket
 import threading
+import select
 
 class ChatClient:
     def __init__(self, host, port):
@@ -8,6 +9,8 @@ class ChatClient:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.name = None
         self.window = None
+
+        self.socket.settimeout(100)
 
     def send(self, message):
         message_out = f"{self.name}: {message}"
@@ -20,6 +23,7 @@ class ChatClient:
 
     def receive(self, name):
         message = self.socket.recv(1024).decode("utf8")
+        print("message:", message)
         if message == "NAME":
             self.socket.send(name.encode("utf8"))
             print("Connected.")
@@ -32,3 +36,5 @@ class ChatClient:
 
     def close(self):
         self.socket.close()
+
+

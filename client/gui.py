@@ -27,7 +27,6 @@ def proto_GUI_client(server_ip, port):
     client_object.window = window
     connected = False
     messages = []
-    #client_object.connect()
 
     # --------------------- EVENT LOOP ---------------------
     while not connected:
@@ -45,12 +44,11 @@ def proto_GUI_client(server_ip, port):
             print("Connected. (gui)")
         print(connected)
 
-    client_object.start_threads(name)
-
     while True:
         event, values = window.read(timeout=100)
         print("event:", event)
         print("values:", values)
+        client_object.receive(name)
         if event == sg.WINDOW_CLOSED:
             break
         elif event == "send":
