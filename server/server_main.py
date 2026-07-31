@@ -8,5 +8,5 @@ my_port = 13108
 host = server.get_server_address()
 
 # MAIN PROGRAM
-cs = server.ChatServer(homehost, my_port)
-cs.run()
+server = server.ChatServer(homehost, my_port)
+server.run()

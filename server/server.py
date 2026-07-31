@@ -1,11 +1,16 @@
 import socket
 import selectors
 
+class Client:
+    def __init__(self, name):
+        self.name = name
+
 class ChatServer:
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.socket = None
+        self.clients = {}
         self.read_selector = selectors.DefaultSelector() # creates a 'bag' to hold sockets
         self.write_selector = selectors.DefaultSelector()
 
@@ -17,19 +22,28 @@ class ChatServer:
         self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection)
 
     def accept_connection(self, sock):
-        client, _ = sock.accept()
+        client, address = sock.accept()
+        print(f"Connected with {str(address)}")
         print("Registering client...")
+        client.send("NAME".encode("utf8"))
+        name = client.recv(1024).decode("utf8")
+        print("name of the client is " + name)
+        self.clients[client] = Client(name)
+        self.broadcast(sock, f"{name} joined the chat.".encode("utf8"))
         self.read_selector.register(client, selectors.EVENT_READ, self.receive_message)
         self.write_selector.register(client, selectors.EVENT_WRITE)
 
     def receive_message(self, sock):
-        msg = sock.recv(1024)
-        print(msg.decode("utf8"))
-        for key, _ in self.write_selector.select(0):
-            if key.fileobj is not sock:
-                key.fileobj.send(msg)
+        message = sock.recv(1024)
+        print(message.decode("utf8"))
+        self.broadcast(sock, message)
 
-
+    def broadcast(self, sock, message):
+        if len(self.clients) > 1:
+            for key, _ in self.write_selector.select(0):
+                if key.fileobj is not sock:
+                    key.fileobj.send(message)
+            print("broadcast:", message)
 
     def run(self):
         self.init_server()
@@ -38,7 +52,6 @@ class ChatServer:
             for key, _ in self.read_selector.select():
                 sock, callback = key.fileobj, key.data
                 callback(sock)
-
 
 
 def get_server_address():

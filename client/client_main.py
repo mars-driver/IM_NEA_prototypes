@@ -1,5 +1,4 @@
 import client
-import socket
 
 # CONSTANTS
 homeserver_ip = "192.168.1.122"
