@@ -24,9 +24,7 @@ def run_server(port):
 def broadcast(message, clients):
     for client in clients.keys():
         client.send(message)
-    print("broadcast: message")
-
-# WIP BEYOND THIS POINT #
+    print("broadcast:", message)
 
 class Client:
     def __init__(self, name):
@@ -56,18 +54,3 @@ def receive_message(client, clients):
             broadcast(f"{clients[client].name} left the chat".encode(), clients)
             clients.pop(client)
             print("client popped")
-
-
-"""
-def receive(server, clients, start_handle_thread, window):
-    client, address = server.accept() # this waits until a client connects
-    print(f"Connected with {str(address)}")
-    client.send("NAME".encode())
-    name = client.recv(1024).decode()
-    clients[client] = Client(name)
-    print(f"Name of the client is {name}.")
-    broadcast(f"{name} joined the chat.".encode(), clients)
-    client.send("Connected to server.".encode())
-    start_handle_thread(client, clients, window) # threading!
-"""
-
