@@ -18,6 +18,6 @@ class ChatClient:
         self.socket.send(name.encode("utf8"))
 
     def receive(self):
-        message = self.socket.recv(1024).decode("utf8")
-        print("message:", message)
-        self.window.write_event_value("-RECEIVED-", message)
+        while True:
+            message = self.socket.recv(1024).decode("utf8")
+            self.window.write_event_value("-RECEIVED-", message)

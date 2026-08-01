@@ -7,20 +7,20 @@ def proto_GUI_client(server_ip, port):
     # ------------------- WINDOW CREATION ------------------
     layout = [[sg.VPush()],
               [sg.Text("THIS IS THE CLIENT")],
-              [sg.Text("Server address:"), sg.Text("", key="-ADDRESS-")],
+              [sg.Text("Server address:"), sg.Text(server_ip)],
               [sg.Text(size=(40, 1), key="-OUTPUT1-")],
               [sg.Text(size=(40, 1), key="-OUTPUT2-")],
               [sg.Text(size=(40, 1), key="-OUTPUT3-")],
               [sg.Text(size=(40, 1), key="-OUTPUT4-")],
               [sg.Text(size=(40, 1), key="-OUTPUT5-")],
               [
-                  sg.Push(), sg.Text("Type message here:", size=(15, 1)),
-                  sg.Input(size=(15, 1), key="-MESSAGE-"), sg.Button("send", bind_return_key=True),
-                  sg.Push()
+                  sg.Push(), sg.Text("Enter your name:", size=(15, 1), key="-PROMPT-"),
+                  sg.Input(size=(15, 1), key="-MESSAGE-", do_not_clear=False),
+                  sg.Button("send", bind_return_key=True), sg.Push()
               ],
               [sg.VPush()]]
 
-    window = sg.Window("PROTO server", layout, resizable=True, element_justification="center")
+    window = sg.Window("PROTO client", layout, resizable=True, element_justification="center")
 
     # ----------------- RUNNING THE CLIENT -----------------
     client_object = client.ChatClient(server_ip, port, window)
@@ -30,8 +30,7 @@ def proto_GUI_client(server_ip, port):
     # --------------------- EVENT LOOP ---------------------
     while not connected:
         event, values = window.read()
-        print("event:", event)
-        print("values:", values)
+        print("event:", event, "values:", values)
         if event == sg.WINDOW_CLOSED:
             client_object.socket.close()
             break
@@ -39,28 +38,24 @@ def proto_GUI_client(server_ip, port):
             name = values["-MESSAGE-"]
             client_object.connect(name)
             connected = True
-            print("Connected. (gui)")
-        print(connected)
 
     threading.Thread(target=client_object.receive).start()
+    window["-PROMPT-"].update("Type message here:")
 
     while True:
         event, values = window.read()
-        print("event:", event, "values:", values)
         if event == sg.WINDOW_CLOSED:
             client_object.socket.close()
             break
         elif event == "send":
             message = values["-MESSAGE-"]
-            messages.append((client_object.name, message))
+            messages.append(("You:", message))
             client_object.send(message)
             update_messages(messages, window)
         elif event == "-RECEIVED-":
             message = values["-RECEIVED-"]
-            print("INCOMING MESSAGE:", message)
-            messages.append(message)
+            messages.append(("", message))
             update_messages(messages, window)
-        print("messages:", messages)
 
     client_object.socket.close()
     window.close()
@@ -75,4 +70,4 @@ def update_messages(messages, window):
     visible_messages = visible_messages[:num_rows][::-1]
     for i in range(num_rows):
         row = f"-OUTPUT{i+1}-"
-        window[row].update(visible_messages[i])
+        window[row].update(" ".join(visible_messages[i]))
