@@ -13,7 +13,7 @@ class ChatClient:
             message = input()
             print("> " + message)
             message_out = f"{self.name}: {message}"
-            self.socket.send(message_out.encode("utf8"))
+            self.socket.send(message_out.encode())
 
     def connect(self):
         self.socket.connect((self.host, self.port))
@@ -21,9 +21,9 @@ class ChatClient:
         self.name = name
         threading.Thread(target=self._input_and_send_loop).start()
         while True:
-            message = self.socket.recv(1024).decode("utf8")
+            message = self.socket.recv(1024).decode()
             if message == "NAME":
-                self.socket.send(name.encode("utf8"))
+                self.socket.send(name.encode())
                 print("Connected.")
             else:
                 print(message)

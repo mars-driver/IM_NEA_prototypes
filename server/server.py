@@ -21,27 +21,28 @@ class ChatServer:
         print(f"Server is listening on port {self.port}...")
         self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection)
 
-    def accept_connection(self, sock):
-        client, address = sock.accept()
+    def accept_connection(self, server_socket):
+        client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
-        client.send("NAME".encode("utf8"))
-        name = client.recv(1024).decode("utf8")
+        client_socket.send("NAME".encode())
+        name = client_socket.recv(1024).decode()
         print("name of the client is " + name)
-        self.clients[client] = Client(name)
-        self.broadcast(sock, f"{name} joined the chat.".encode("utf8"))
-        self.read_selector.register(client, selectors.EVENT_READ, self.receive_message)
-        self.write_selector.register(client, selectors.EVENT_WRITE)
+        self.clients[client_socket] = Client(name)
+        self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
+        self.write_selector.register(client_socket, selectors.EVENT_WRITE)
+        self.broadcast(client_socket, f"{name} joined the chat.".encode())
 
-    def receive_message(self, sock):
-        message = sock.recv(1024)
-        print(message.decode("utf8"))
-        self.broadcast(sock, message)
 
-    def broadcast(self, sock, message):
-        if len(self.clients) > 1:
+    def receive_message(self, client_socket):
+        message = client_socket.recv(1024)
+        print(message.decode())
+        self.broadcast(client_socket, message)
+
+    def broadcast(self, client_socket, message):
+        if len(self.clients) > 0:
             for key, _ in self.write_selector.select(0):
-                if key.fileobj is not sock:
+                if key.fileobj is not client_socket:
                     key.fileobj.send(message)
             print("broadcast:", message)
 
@@ -50,8 +51,19 @@ class ChatServer:
         print("Running server...")
         while True:
             for key, _ in self.read_selector.select():
-                sock, callback = key.fileobj, key.data
-                callback(sock)
+                socket, callback = key.fileobj, key.data
+                try:
+                    callback(socket)
+                    print("callback on socket", socket)
+                except:
+                    name = self.clients[socket].name
+                    print("socket error", name)
+                    self.read_selector.unregister(socket)
+                    self.write_selector.unregister(socket)
+                    self.clients.pop(socket)
+                    socket.close()
+                    self.broadcast(socket, f"{name} has left.".encode())
+
 
 
 def get_server_address():
