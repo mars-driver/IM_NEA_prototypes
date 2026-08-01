@@ -11,7 +11,7 @@ class ChatServer:
         self.port = port
         self.socket = None
         self.clients = {}
-        self.read_selector = selectors.DefaultSelector() # creates a 'bag' to hold sockets
+        self.read_selector = selectors.DefaultSelector()
         self.write_selector = selectors.DefaultSelector()
 
     def init_server(self):
