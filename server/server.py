@@ -25,7 +25,7 @@ class ChatServer:
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
-        client_socket.send("NAME".encode())
+        #client_socket.send("-NAME-".encode())
         name = client_socket.recv(1024).decode()
         print("name of the client is " + name)
         self.clients[client_socket] = Client(name)
@@ -54,7 +54,6 @@ class ChatServer:
                 socket, callback = key.fileobj, key.data
                 try:
                     callback(socket)
-                    print("callback on socket", socket)
                 except:
                     name = self.clients[socket].name
                     print("socket error", name)

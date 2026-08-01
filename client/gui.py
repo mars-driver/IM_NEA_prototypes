@@ -23,15 +23,56 @@ def proto_GUI_client(server_ip, port):
     window = sg.Window("PROTO server", layout, resizable=True, element_justification="center")
 
     # ----------------- RUNNING THE CLIENT -----------------
-    client_socket = client.run_client(server_ip, port)
+    client_object = client.ChatClient(server_ip, port, window)
+    connected = False
+    messages = []
 
     # --------------------- EVENT LOOP ---------------------
-    while True:
+    while not connected:
         event, values = window.read()
         print("event:", event)
         print("values:", values)
         if event == sg.WINDOW_CLOSED:
+            client_object.socket.close()
             break
+        elif event == "send":
+            name = values["-MESSAGE-"]
+            client_object.connect(name)
+            connected = True
+            print("Connected. (gui)")
+        print(connected)
 
-    client_socket.close()
+    threading.Thread(target=client_object.receive).start()
+
+    while True:
+        event, values = window.read()
+        print("event:", event, "values:", values)
+        if event == sg.WINDOW_CLOSED:
+            client_object.socket.close()
+            break
+        elif event == "send":
+            message = values["-MESSAGE-"]
+            messages.append((client_object.name, message))
+            client_object.send(message)
+            update_messages(messages, window)
+        elif event == "-RECEIVED-":
+            message = values["-RECEIVED-"]
+            print("INCOMING MESSAGE:", message)
+            messages.append(message)
+            update_messages(messages, window)
+        print("messages:", messages)
+
+    client_object.socket.close()
     window.close()
+
+
+def update_messages(messages, window):
+    num_rows = 5
+    visible_messages = messages[::-1]
+    if len(messages) < num_rows:
+        for _ in range(num_rows - len(messages)):
+            visible_messages.append("")
+    visible_messages = visible_messages[:num_rows][::-1]
+    for i in range(num_rows):
+        row = f"-OUTPUT{i+1}-"
+        window[row].update(visible_messages[i])

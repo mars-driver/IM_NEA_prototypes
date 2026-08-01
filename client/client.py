@@ -1,29 +1,23 @@
 import socket
-import threading
 
 class ChatClient:
-    def __init__(self, host, port):
+    def __init__(self, host, port, window):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.name = None
+        self.window = window
 
-    def _input_and_send_loop(self):
-        while True:
-            message = input()
-            print("> " + message)
-            message_out = f"{self.name}: {message}"
-            self.socket.send(message_out.encode())
+    def send(self, message):
+        message_out = f"{self.name}: {message}"
+        self.socket.send(message_out.encode("utf8"))
 
-    def connect(self):
+    def connect(self, name):
         self.socket.connect((self.host, self.port))
-        name = input("Enter your name: ")
         self.name = name
-        threading.Thread(target=self._input_and_send_loop).start()
-        while True:
-            message = self.socket.recv(1024).decode()
-            if message == "NAME":
-                self.socket.send(name.encode())
-                print("Connected.")
-            else:
-                print(message)
+        self.socket.send(name.encode("utf8"))
+
+    def receive(self):
+        message = self.socket.recv(1024).decode("utf8")
+        print("message:", message)
+        self.window.write_event_value("-RECEIVED-", message)
