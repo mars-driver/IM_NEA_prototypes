@@ -1,5 +1,5 @@
 import socket
-import selectors
+import selectors # replaces threading
 
 class Client:
     def __init__(self, name):
@@ -11,15 +11,15 @@ class ChatServer:
         self.port = port
         self.socket = None
         self.clients = {}
-        self.read_selector = selectors.DefaultSelector()
-        self.write_selector = selectors.DefaultSelector()
+        self.read_selector = selectors.DefaultSelector() # holds sockets to read from
+        self.write_selector = selectors.DefaultSelector() # holds sockets to write to
 
     def init_server(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((self.host, self.port))
         self.socket.listen()
         print(f"Server is listening on port {self.port}...")
-        self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection)
+        self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection) # adds the client socket to the selector
 
     def accept_connection(self, server_socket):
         client_socket, address = server_socket.accept()
@@ -28,6 +28,7 @@ class ChatServer:
         name = client_socket.recv(1024).decode()
         print("name of the client is " + name)
         self.clients[client_socket] = Client(name)
+        # adds the new client socket to the selectors
         self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
         self.write_selector.register(client_socket, selectors.EVENT_WRITE)
         self.broadcast(client_socket, f"{name} joined the chat.".encode())
@@ -61,8 +62,6 @@ class ChatServer:
                     self.clients.pop(socket)
                     socket.close()
                     self.broadcast(socket, f"{name} has left.".encode())
-
-
 
 def get_server_address():
     hostname = socket.gethostname()

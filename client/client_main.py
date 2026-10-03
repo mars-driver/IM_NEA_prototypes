@@ -1,4 +1,4 @@
-import gui
+import gui # my gui.py module
 
 # CONSTANTS
 homehost = "192.168.1.122"
