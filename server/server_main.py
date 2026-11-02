@@ -1,13 +1,18 @@
 import server
 
 # CONSTANTS
-homehost = "192.168.1.122"
-schoolhost = "10.56.81.120"
-localhost = "127.0.0.1"
-grannyhost = "192.168.1.138"
-my_port = 13108
+HOMEHOST = "192.168.1.122"
+SCHOOLHOST = "10.56.81.120"
+LOCALHOST = "127.0.0.1"
+GRANNYHOST = "192.168.1.138"
+MY_PORT = 13108
+
 host = server.get_server_address()
+print(host)
+currenthost = HOMEHOST
+assert currenthost == host
+
 
 # MAIN PROGRAM
-server = server.ChatServer(schoolhost, my_port)
+server = server.ChatServer(currenthost, MY_PORT)
 server.run()
