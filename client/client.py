@@ -8,7 +8,7 @@ class ChatClient:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.name = None
 
-    def _input_and_send_loop(self):
+    def input_and_send_loop(self):
         while True:
             message = input()
             print("> " + message)
@@ -19,7 +19,7 @@ class ChatClient:
         self.socket.connect((self.host, self.port))
         name = input("Enter your name: ")
         self.name = name
-        threading.Thread(target=self._input_and_send_loop).start()
+        threading.Thread(target=self.input_and_send_loop).start()
         while True:
             message = self.socket.recv(1024).decode()
             if message == "NAME":
