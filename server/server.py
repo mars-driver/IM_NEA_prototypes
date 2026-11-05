@@ -1,5 +1,7 @@
 import socket
 import selectors
+import cbor2
+# import server_encryption
 
 class Client:
     def __init__(self, name):
@@ -25,6 +27,13 @@ class ChatServer:
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
+        """
+        client_socket.send("-KEY-".encode())
+        client_public_key = client_socket.recv(1024).decode()
+        server_private_key, server_public_key, signature = server_encryption.initial_connection(client_public_key)
+        client_socket.send(server_public_key)
+        #todo add signature
+        """
         client_socket.send("-NAME-".encode())
         name = client_socket.recv(1024).decode()
         print("name of the client is " + name)
@@ -35,9 +44,14 @@ class ChatServer:
 
 
     def receive_message(self, client_socket):
-        message = client_socket.recv(1024)
-        print(message.decode())
-        self.broadcast(client_socket, message)
+        message_bytes = client_socket.recv(1024)
+        message_dict = cbor2.loads(message_bytes)
+        print(message_dict)
+        if message_dict["message_type"] == "-TEXT-":
+            content = message_dict["content"]
+            sender = message_dict["sender"]
+            message = f"{sender}: {content}"
+            self.broadcast(client_socket, message.encode())
 
     def broadcast(self, client_socket, message):
         if len(self.clients) > 0:

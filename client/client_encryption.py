@@ -16,5 +16,6 @@ SERVER_PUBLIC_KEY = ecdsa.VerifyingKey.from_string(SERVER_PUBLIC_KEY, curve=CURV
 def generate_new_keys():
     client_private = ecdsa.SigningKey.generate(CURVE)
     client_public = client_private.verifying_key
-    return client_public
+    return client_private.to_string().hex(), client_public.to_string().hex()
 
+generate_new_keys()
