@@ -14,7 +14,6 @@ class ChatClient:
         while True:
             message = input()
             print("> " + message)
-            message_out = f"{self.name}: {message}" #todo rewrite using cbor2
             message_dict = {
                 "message_type": "-TEXT-",
                 "sender": self.name,
@@ -34,15 +33,33 @@ class ChatClient:
         self.name = name
         threading.Thread(target=self.input_and_send_loop).start()
         while True:
-            message = self.socket.recv(1024).decode()
+            message_bytes = self.socket.recv(1024)
+            message_dict = cbor2.loads(message_bytes)
+            message_type = message_dict["message_type"]
+            if message_type == "-TEXT-":
+                sender = message_dict["sender"]
+                content = message_dict["content"]
+                message = f"{sender}: {content}"
+                print(message)
+            elif message_type == "-JOIN-":
+                user = message_dict["user"]
+                message = f"{user} joined the chat."
+                print(message)
+            elif message_type == "-DISCONNECT-":
+                user = message_dict["user"]
+                message = f"{user} has left the chat."
+                print(message)
             #if message == "-KEY-":
                 #self.socket.send(client_public_key.encode())
                 #server_public_key = self.socket.recv(1024).decode()
-            if message == "-NAME-":
-                self.socket.send(name.encode())
+            elif message_type == "-NAME-":
+                message_dict = {
+                    "message_type": "-NAME-",
+                    "name": name
+                }
+                message_bytes = cbor2.dumps(message_dict)
+                self.socket.send(message_bytes)
                 print("Connected.")
-            else:
-                print(message)
 
 """
     def initialise_encryption(self):

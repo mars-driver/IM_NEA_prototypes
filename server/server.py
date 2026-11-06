@@ -34,13 +34,25 @@ class ChatServer:
         client_socket.send(server_public_key)
         #todo add signature
         """
-        client_socket.send("-NAME-".encode())
-        name = client_socket.recv(1024).decode()
+        message_dict = {
+            "message_type": "-NAME-",
+        }
+        message_bytes = cbor2.dumps(message_dict)
+        client_socket.send(message_bytes)
+        name_bytes = client_socket.recv(1024)
+        name_dict = cbor2.loads(name_bytes)
+        assert name_dict["message_type"] == "-NAME-"
+        name = name_dict["name"]
         print("name of the client is " + name)
         self.clients[client_socket] = Client(name)
         self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
         self.write_selector.register(client_socket, selectors.EVENT_WRITE)
-        self.broadcast(client_socket, f"{name} joined the chat.".encode())
+        message_dict = {
+            "message_type": "-JOIN-",
+            "user": name
+        }
+        message_bytes = cbor2.dumps(message_dict)
+        self.broadcast(client_socket, message_bytes)
 
 
     def receive_message(self, client_socket):
@@ -48,17 +60,17 @@ class ChatServer:
         message_dict = cbor2.loads(message_bytes)
         print(message_dict)
         if message_dict["message_type"] == "-TEXT-":
-            content = message_dict["content"]
-            sender = message_dict["sender"]
-            message = f"{sender}: {content}"
-            self.broadcast(client_socket, message.encode())
+            self.broadcast(client_socket, message_bytes)
+        else:
+            print("other message")
 
-    def broadcast(self, client_socket, message):
+
+    def broadcast(self, client_socket, message_bytes):
         if len(self.clients) > 0:
             for key, _ in self.write_selector.select(0):
                 if key.fileobj is not client_socket:
-                    key.fileobj.send(message)
-            print("broadcast:", message)
+                    key.fileobj.send(message_bytes)
+            print("broadcast:", message_bytes)
 
     def run(self):
         self.init_server()
@@ -75,7 +87,12 @@ class ChatServer:
                     self.write_selector.unregister(socket)
                     self.clients.pop(socket)
                     socket.close()
-                    self.broadcast(socket, f"{name} has left.".encode())
+                    message_dict = {
+                        "message_type": "-DISCONNECT-",
+                        "user": name
+                    }
+                    message_bytes = cbor2.dumps(message_dict)
+                    self.broadcast(socket, message_bytes)
 
 
 
