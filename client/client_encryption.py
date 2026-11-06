@@ -16,6 +16,15 @@ SERVER_PUBLIC_KEY = ecdsa.VerifyingKey.from_string(SERVER_PUBLIC_KEY, curve=CURV
 def generate_new_keys():
     client_private = ecdsa.SigningKey.generate(CURVE)
     client_public = client_private.verifying_key
-    return client_private.to_string().hex(), client_public.to_string().hex()
+    return client_private, client_public
 
-generate_new_keys()
+def verify_server(signature, both_keys):
+    SERVER_PUBLIC_KEY.verify(signature, both_keys)
+
+def compute_shared_key(client_private_key, server_public_key):
+    client_ecdh = ecdsa.ECDH(CURVE, client_private_key, server_public_key)
+    client_secret = client_ecdh.generate_sharedsecret_bytes()
+    client_key = hmac.new(CONNECTION_SALT, client_secret, hashlib.sha256).digest()
+    print(f'Success! Shared secret (hex): {client_secret.hex()}') # added for testing
+    print(f'Success! Shared key (hex): {client_key.hex()}') # added for testing
+    return client_key

@@ -16,3 +16,5 @@ assert currenthost == host
 # MAIN PROGRAM
 server = server.ChatServer(currenthost, MY_PORT)
 server.run()
+
+#TODO verifyingkey class cannot be encoded with cbor2 - will have to change to string/hex first

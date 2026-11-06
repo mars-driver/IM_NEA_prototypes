@@ -1,7 +1,7 @@
 import socket
 import threading
 import cbor2
-# import client_encryption
+import client_encryption
 
 class ChatClient:
     def __init__(self, host, port):
@@ -24,35 +24,51 @@ class ChatClient:
 
     def connect(self):
         self.socket.connect((self.host, self.port))
-        # send keys here todo
-        #client_private_key, client_public_key = client_encryption.generate_new_keys()
-        #self.socket.send(client_public_key.encode())
-        # todo end
+        client_private_key, client_public_key = client_encryption.generate_new_keys()
         name = input("Enter your name: ")
-        #name = client_public_key
         self.name = name
         threading.Thread(target=self.input_and_send_loop).start()
+
         while True:
             message_bytes = self.socket.recv(1024)
             message_dict = cbor2.loads(message_bytes)
             message_type = message_dict["message_type"]
-            if message_type == "-TEXT-":
+
+            if message_type == "-TEXT-": # A message sent from a user to a chat room
                 sender = message_dict["sender"]
                 content = message_dict["content"]
                 message = f"{sender}: {content}"
                 print(message)
-            elif message_type == "-JOIN-":
+
+            elif message_type == "-JOIN-": # A message sent by the server when a user joins the chat room
                 user = message_dict["user"]
                 message = f"{user} joined the chat."
                 print(message)
-            elif message_type == "-DISCONNECT-":
+
+            elif message_type == "-DISCONNECT-": # A message sent by the server when a user leaves the chat room
                 user = message_dict["user"]
                 message = f"{user} has left the chat."
                 print(message)
-            #if message == "-KEY-":
-                #self.socket.send(client_public_key.encode())
-                #server_public_key = self.socket.recv(1024).decode()
-            elif message_type == "-NAME-":
+
+            elif message_type == "-KEY-": # A request from server to begin key exchange
+                message_dict = {
+                    "message_type": "-KEY-",
+                    "client_public_key": client_public_key
+                }
+                message_bytes = cbor2.dumps(message_dict)
+                self.socket.send(message_bytes)
+                print("keys sent") # added for testing
+                server_keys_bytes = self.socket.recv(1024)
+                server_keys_dict = cbor2.loads(server_keys_bytes)
+                assert server_keys_dict["message_type"] == "-SERVER-KEYS-"
+                server_public_key = server_keys_dict["server_public_key"]
+                both_keys = server_keys_dict["both_keys"]
+                signature = server_keys_dict["signature"]
+                client_encryption.verify_server(signature, both_keys)
+                shared_key = client_encryption.compute_shared_key(client_private_key, server_public_key) #todo share this
+                print("shared key computed") # added for testing
+
+            elif message_type == "-NAME-": # A request from server to get client's name
                 message_dict = {
                     "message_type": "-NAME-",
                     "name": name
@@ -60,11 +76,3 @@ class ChatClient:
                 message_bytes = cbor2.dumps(message_dict)
                 self.socket.send(message_bytes)
                 print("Connected.")
-
-"""
-    def initialise_encryption(self):
-        client_public_key = client_encryption.generate_new_keys()
-        self.socket.send("-KEYS-".encode())
-        self.socket.send(client_public_key.encode())
-        server_public_key = self.socket.recv(1024).decode()
-"""

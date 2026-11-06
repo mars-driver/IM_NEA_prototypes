@@ -1,7 +1,7 @@
 import socket
 import selectors
 import cbor2
-# import server_encryption
+import server_encryption
 
 class Client:
     def __init__(self, name):
@@ -34,8 +34,31 @@ class ChatServer:
         client_socket.send(server_public_key)
         #todo add signature
         """
+        # exchanging of keys
         message_dict = {
-            "message_type": "-NAME-",
+            "message_type": "-KEY-"
+        }
+        message_bytes = cbor2.dumps(message_dict)
+        client_socket.send(message_bytes)
+        key_bytes = client_socket.recv(1024)
+        key_dict = cbor2.loads(key_bytes)
+        assert key_dict["message_type"] == "-KEY-"
+        client_public_key = key_dict["client_public_key"]
+        server_private_key, server_public_key, both_keys, signature = server_encryption.initial_connection(client_public_key)
+        message_dict = {
+            "message_type": "-SERVER-KEYS-",
+            "server_public_key": server_public_key,
+            "both_keys": both_keys,
+            "signature": signature
+        }
+        message_bytes = cbor2.dumps(message_dict)
+        client_socket.send(message_bytes)
+        shared_key = server_encryption.compute_shared_key(server_private_key, client_public_key) #todo this
+        print("shared key computed") # added for testing
+
+        # acquiring client name
+        message_dict = {
+            "message_type": "-NAME-"
         }
         message_bytes = cbor2.dumps(message_dict)
         client_socket.send(message_bytes)
