@@ -53,15 +53,15 @@ class ChatClient:
             elif message_type == "-KEY-": # A request from server to begin key exchange
                 message_dict = {
                     "message_type": "-KEY-",
-                    "client_public_key": client_public_key
+                    "client_public_key_string": client_encryption.key_to_string(client_public_key)
                 }
                 message_bytes = cbor2.dumps(message_dict)
                 self.socket.send(message_bytes)
-                print("keys sent") # added for testing
                 server_keys_bytes = self.socket.recv(1024)
                 server_keys_dict = cbor2.loads(server_keys_bytes)
                 assert server_keys_dict["message_type"] == "-SERVER-KEYS-"
-                server_public_key = server_keys_dict["server_public_key"]
+                server_public_key_string = server_keys_dict["server_public_key_string"]
+                server_public_key = client_encryption.string_to_key(server_public_key_string)
                 both_keys = server_keys_dict["both_keys"]
                 signature = server_keys_dict["signature"]
                 client_encryption.verify_server(signature, both_keys)

@@ -32,3 +32,9 @@ def compute_shared_key(server_private_key, client_public_key):
     print(f'Success! Shared secret (hex): {server_secret.hex()}') # added for testing
     print(f'Success! Shared key (hex): {server_key.hex()}') # added for testing
     return server_key
+
+def key_to_string(key):
+    return key.to_string()
+
+def string_to_key(key_string):
+    return ecdsa.VerifyingKey.from_string(key_string, curve=CURVE)

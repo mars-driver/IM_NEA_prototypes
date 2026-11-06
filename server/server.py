@@ -43,11 +43,12 @@ class ChatServer:
         key_bytes = client_socket.recv(1024)
         key_dict = cbor2.loads(key_bytes)
         assert key_dict["message_type"] == "-KEY-"
-        client_public_key = key_dict["client_public_key"]
+        client_public_key_string = key_dict["client_public_key_string"]
+        client_public_key = server_encryption.string_to_key(client_public_key_string)
         server_private_key, server_public_key, both_keys, signature = server_encryption.initial_connection(client_public_key)
         message_dict = {
             "message_type": "-SERVER-KEYS-",
-            "server_public_key": server_public_key,
+            "server_public_key_string": server_encryption.key_to_string(server_public_key),
             "both_keys": both_keys,
             "signature": signature
         }
