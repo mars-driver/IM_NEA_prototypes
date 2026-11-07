@@ -15,6 +15,7 @@ class ChatServer:
         self.clients = {}
         self.read_selector = selectors.DefaultSelector()
         self.write_selector = selectors.DefaultSelector()
+        self.encryption_cipher = None
 
     def init_server(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,18 +28,9 @@ class ChatServer:
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
-        """
-        client_socket.send("-KEY-".encode())
-        client_public_key = client_socket.recv(1024).decode()
-        server_private_key, server_public_key, signature = server_encryption.initial_connection(client_public_key)
-        client_socket.send(server_public_key)
-        #todo add signature
-        """
+
         # exchanging of keys
-        message_dict = {
-            "message_type": "-KEY-"
-        }
-        message_bytes = cbor2.dumps(message_dict)
+        message_bytes = message_to_bytes("-KEY-", {})
         client_socket.send(message_bytes)
         key_bytes = client_socket.recv(1024)
         key_dict = cbor2.loads(key_bytes)
@@ -46,22 +38,17 @@ class ChatServer:
         client_public_key_string = key_dict["client_public_key_string"]
         client_public_key = server_encryption.string_to_key(client_public_key_string)
         server_private_key, server_public_key, both_keys, signature = server_encryption.initial_connection(client_public_key)
-        message_dict = {
-            "message_type": "-SERVER-KEYS-",
+        message_bytes = message_to_bytes("-SERVER-KEYS-", {
             "server_public_key_string": server_encryption.key_to_string(server_public_key),
             "both_keys": both_keys,
             "signature": signature
-        }
-        message_bytes = cbor2.dumps(message_dict)
+        })
         client_socket.send(message_bytes)
-        shared_key = server_encryption.compute_shared_key(server_private_key, client_public_key) #todo this
-        print("shared key computed") # added for testing
+        encryption_cipher = server_encryption.generate_cipher(server_private_key, client_public_key)
+        self.encryption_cipher = encryption_cipher
 
         # acquiring client name
-        message_dict = {
-            "message_type": "-NAME-"
-        }
-        message_bytes = cbor2.dumps(message_dict)
+        message_bytes = message_to_bytes("-NAME-", {})
         client_socket.send(message_bytes)
         name_bytes = client_socket.recv(1024)
         name_dict = cbor2.loads(name_bytes)
@@ -71,18 +58,16 @@ class ChatServer:
         self.clients[client_socket] = Client(name)
         self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
         self.write_selector.register(client_socket, selectors.EVENT_WRITE)
-        message_dict = {
-            "message_type": "-JOIN-",
+        message_bytes = message_to_bytes("-JOIN-", {
             "user": name
-        }
-        message_bytes = cbor2.dumps(message_dict)
+        })
         self.broadcast(client_socket, message_bytes)
 
 
     def receive_message(self, client_socket):
-        message_bytes = client_socket.recv(1024)
+        encrypted_message = client_socket.recv(1024)
+        message_bytes = server_encryption.decrypt_message(encrypted_message, self.encryption_cipher)
         message_dict = cbor2.loads(message_bytes)
-        print(message_dict)
         if message_dict["message_type"] == "-TEXT-":
             self.broadcast(client_socket, message_bytes)
         else:
@@ -111,14 +96,16 @@ class ChatServer:
                     self.write_selector.unregister(socket)
                     self.clients.pop(socket)
                     socket.close()
-                    message_dict = {
-                        "message_type": "-DISCONNECT-",
+                    message_bytes = message_to_bytes("-DISCONNECT-", {
                         "user": name
-                    }
-                    message_bytes = cbor2.dumps(message_dict)
+                    })
                     self.broadcast(socket, message_bytes)
 
-
+def message_to_bytes(message_type, values_dict):
+    message_dict = {key: value for key,value in values_dict.items()}
+    message_dict["message_type"] = message_type
+    message_bytes = cbor2.dumps(message_dict)
+    return message_bytes
 
 def get_server_address():
     hostname = socket.gethostname()

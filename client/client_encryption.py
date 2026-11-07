@@ -1,4 +1,3 @@
-import cbor2
 import chacha20poly1305
 import ecdsa
 import hashlib
@@ -25,9 +24,18 @@ def compute_shared_key(client_private_key, server_public_key):
     client_ecdh = ecdsa.ECDH(CURVE, client_private_key, server_public_key)
     client_secret = client_ecdh.generate_sharedsecret_bytes()
     client_key = hmac.new(CONNECTION_SALT, client_secret, hashlib.sha256).digest()
-    print(f'Success! Shared secret (hex): {client_secret.hex()}') # added for testing
-    print(f'Success! Shared key (hex): {client_key.hex()}') # added for testing
     return client_key
+
+def generate_cipher(client_private_key, server_public_key):
+    encryption_key = compute_shared_key(client_private_key, server_public_key)
+    encryption_cipher = chacha20poly1305.ChaCha20Poly1305(encryption_key)
+    return encryption_cipher
+
+def encrypt_message(message_bytes, encryption_cipher):
+    n_once = os.urandom(12)  # always different random for each message sent
+    encrypted_message = encryption_cipher.encrypt(n_once, message_bytes)
+    encrypted_message = n_once + encrypted_message
+    return encrypted_message
 
 def key_to_string(key):
     return key.to_string()

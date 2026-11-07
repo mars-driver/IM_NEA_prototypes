@@ -9,7 +9,7 @@ MY_PORT = 13108
 
 host = server.get_server_address()
 print(host)
-currenthost = SCHOOLHOST
+currenthost = HOMEHOST
 assert currenthost == host
 
 
@@ -17,4 +17,4 @@ assert currenthost == host
 server = server.ChatServer(currenthost, MY_PORT)
 server.run()
 
-#TODO verifyingkey class cannot be encoded with cbor2 - will have to change to string/hex first
+#TODO note: mostly works except client 1 crashes when client 2 joins and then client 1 attempts to send a msg ???
