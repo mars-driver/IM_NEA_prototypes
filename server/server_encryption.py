@@ -1,7 +1,7 @@
 import cbor2
 import chacha20poly1305
 import ecdsa
-import hashlib
+from hashlib import sha256
 import hmac
 import os
 
@@ -20,14 +20,14 @@ def initial_connection(client_public_key):
     return server_private_key, server_public_key, both_keys, signature
 
 def create_signature(client_public_key, server_public_key):
-    both_keys = client_public_key.to_string() + server_public_key.to_string() # concatenated
+    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key) # concatenated
     signature = SERVER_PRIVATE_KEY.sign_deterministic(both_keys)
     return both_keys, signature
 
 def compute_shared_key(server_private_key, client_public_key):
     server_ecdh = ecdsa.ECDH(CURVE, server_private_key, client_public_key)
     server_secret = server_ecdh.generate_sharedsecret_bytes()
-    server_key = hmac.new(CONNECTION_SALT, server_secret, hashlib.sha256).digest()
+    server_key = hmac.new(CONNECTION_SALT, server_secret, sha256).digest()
     return server_key
 
 def generate_cipher(server_private_key, client_public_key):

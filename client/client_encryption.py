@@ -1,6 +1,6 @@
 import chacha20poly1305
 import ecdsa
-import hashlib
+from hashlib import sha256
 import hmac
 import os
 
@@ -23,7 +23,7 @@ def verify_server(signature, both_keys):
 def compute_shared_key(client_private_key, server_public_key):
     client_ecdh = ecdsa.ECDH(CURVE, client_private_key, server_public_key)
     client_secret = client_ecdh.generate_sharedsecret_bytes()
-    client_key = hmac.new(CONNECTION_SALT, client_secret, hashlib.sha256).digest()
+    client_key = hmac.new(CONNECTION_SALT, client_secret, sha256).digest()
     return client_key
 
 def generate_cipher(client_private_key, server_public_key):
