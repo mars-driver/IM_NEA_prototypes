@@ -9,7 +9,9 @@ import os
 CURVE = ecdsa.SECP256k1 # y^2 = x^3 - 7
 CONNECTION_SALT='client-server'.encode() # common string to salt key generation
 
-SERVER_PRIVATE_KEY = 'fb6dab05c92e9a8c04e4fe89b680fc1023bb19b5625d84c41427b02aceaf36e5'
+with open("server_private_key.txt") as file:
+    SERVER_PRIVATE_KEY = file.readline()
+
 SERVER_PRIVATE_KEY = bytes.fromhex(SERVER_PRIVATE_KEY)
 SERVER_PRIVATE_KEY = ecdsa.SigningKey.from_string(SERVER_PRIVATE_KEY, curve=CURVE)
 
