@@ -1,8 +1,8 @@
-import chacha20poly1305
+from chacha20poly1305 import ChaCha20Poly1305
 import ecdsa
 from hashlib import sha256
 import hmac
-import os
+from os import urandom
 
 # CONSTANTS
 CURVE = ecdsa.SECP256k1 # y^2 = x^3 - 7
@@ -19,9 +19,9 @@ def generate_new_keys():
     client_public = client_private.verifying_key
     return client_private, client_public
 
-def verify_server(signature, server_public_key, client_public_key):
-    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key)  # concatenated
-    SERVER_PUBLIC_KEY.verify(signature, both_keys)
+def verify_server(signature, client_public_key, server_public_key):
+    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key) # concatenates the public keys
+    SERVER_PUBLIC_KEY.verify(signature, both_keys) # returns True if the verification passes, and throws an error if it fails
 
 def compute_shared_key(client_private_key, server_public_key):
     client_ecdh = ecdsa.ECDH(CURVE, client_private_key, server_public_key)
@@ -31,11 +31,11 @@ def compute_shared_key(client_private_key, server_public_key):
 
 def generate_cipher(client_private_key, server_public_key):
     encryption_key = compute_shared_key(client_private_key, server_public_key)
-    encryption_cipher = chacha20poly1305.ChaCha20Poly1305(encryption_key)
+    encryption_cipher = ChaCha20Poly1305(encryption_key)
     return encryption_cipher
 
 def encrypt_message(message_bytes, encryption_cipher):
-    n_once = os.urandom(12)  # always different random for each message sent
+    n_once = urandom(12)  # always different random for each message sent
     encrypted_message = encryption_cipher.encrypt(n_once, message_bytes)
     encrypted_message = n_once + encrypted_message
     return encrypted_message

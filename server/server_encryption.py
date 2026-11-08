@@ -1,9 +1,7 @@
-import cbor2
-import chacha20poly1305
+from chacha20poly1305 import ChaCha20Poly1305
 import ecdsa
 from hashlib import sha256
 import hmac
-import os
 
 # CONSTANTS
 CURVE = ecdsa.SECP256k1 # y^2 = x^3 - 7
@@ -34,7 +32,7 @@ def compute_shared_key(server_private_key, client_public_key):
 
 def generate_cipher(server_private_key, client_public_key):
     encryption_key = compute_shared_key(server_private_key, client_public_key)
-    encryption_cipher = chacha20poly1305.ChaCha20Poly1305(encryption_key)
+    encryption_cipher = ChaCha20Poly1305(encryption_key)
     return encryption_cipher
 
 def decrypt_message(encrypted_message, encryption_cipher):

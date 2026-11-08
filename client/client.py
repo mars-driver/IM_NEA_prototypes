@@ -56,14 +56,13 @@ class ChatClient:
                     "client_public_key_string": client_encryption.key_to_string(client_public_key)
                 })
                 self.socket.send(message_bytes)
-                print("key sent")
                 server_keys_bytes = self.socket.recv(1024)
                 server_keys_dict = cbor2.loads(server_keys_bytes)
                 assert server_keys_dict["message_type"] == "-SERVER-KEYS-"
                 server_public_key_string = server_keys_dict["server_public_key_string"]
                 server_public_key = client_encryption.string_to_key(server_public_key_string)
                 signature = server_keys_dict["signature"]
-                client_encryption.verify_server(signature, server_public_key, client_public_key)
+                client_encryption.verify_server(signature, client_public_key, server_public_key)
                 encryption_cipher = client_encryption.generate_cipher(client_private_key, server_public_key)
                 self.encryption_cipher = encryption_cipher
 

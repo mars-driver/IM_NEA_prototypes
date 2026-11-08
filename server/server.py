@@ -37,7 +37,6 @@ class ChatServer:
         assert key_dict["message_type"] == "-KEY-"
         client_public_key_string = key_dict["client_public_key_string"]
         client_public_key = server_encryption.string_to_key(client_public_key_string)
-        print("key received")
         server_private_key, server_public_key, signature = server_encryption.initial_connection(client_public_key)
         message_bytes = message_to_bytes("-SERVER-KEYS-", {
             "server_public_key_string": server_encryption.key_to_string(server_public_key),
