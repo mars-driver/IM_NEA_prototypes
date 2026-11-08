@@ -101,6 +101,10 @@ class ChatServer:
                     self.broadcast(socket, message_bytes)
 
 def message_to_bytes(message_type, values_dict):
+    """
+    A function which takes the message type and remaining items as parameters
+    and returns the encoded equivalent in bytes
+    """
     message_dict = {key: value for key,value in values_dict.items()}
     message_dict["message_type"] = message_type
     message_bytes = cbor2.dumps(message_dict)
