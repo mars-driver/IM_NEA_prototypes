@@ -4,8 +4,9 @@ import cbor2
 import server_encryption
 
 class Client:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self):
+        self.encryption_cipher = None
+        self.name = None
 
 class ChatServer:
     def __init__(self, host, port):
@@ -15,7 +16,6 @@ class ChatServer:
         self.clients = {}
         self.read_selector = selectors.DefaultSelector()
         self.write_selector = selectors.DefaultSelector()
-        self.encryption_cipher = None
 
     def init_server(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,6 +28,11 @@ class ChatServer:
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
+
+        self.clients[client_socket] = Client()
+        client_object = self.clients[client_socket]
+        self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
+        self.write_selector.register(client_socket, selectors.EVENT_WRITE)
 
         # exchanging of keys
         message_bytes = message_to_bytes("-KEY-", {})
@@ -44,31 +49,25 @@ class ChatServer:
         })
         client_socket.send(message_bytes)
         encryption_cipher = server_encryption.generate_cipher(server_private_key, client_public_key)
-        self.encryption_cipher = encryption_cipher
+        client_object.encryption_cipher = encryption_cipher
+        print("Encryption key established.")
 
         # acquiring client name
         message_bytes = message_to_bytes("-NAME-", {})
-        client_socket.send(message_bytes)
-        name_bytes = client_socket.recv(1024)
-        name_dict = cbor2.loads(name_bytes)
+        encrypt_and_send(client_socket, message_bytes, encryption_cipher)
+        name_dict = receive_and_decrypt(client_socket, client_object.encryption_cipher)
         assert name_dict["message_type"] == "-NAME-"
         name = name_dict["name"]
+        client_object.name = name
         print("name of the client is " + name)
-        self.clients[client_socket] = Client(name)
-        self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
-        self.write_selector.register(client_socket, selectors.EVENT_WRITE)
-        message_bytes = message_to_bytes("-JOIN-", {
-            "user": name
-        })
+        message_bytes = message_to_bytes("-JOIN-", {"user": name})
         self.broadcast(client_socket, message_bytes)
 
 
     def receive_message(self, client_socket):
-        encrypted_message = client_socket.recv(1024)
-        message_bytes = server_encryption.decrypt_message(encrypted_message, self.encryption_cipher)
-        message_dict = cbor2.loads(message_bytes)
+        message_dict = receive_and_decrypt(client_socket, self.clients[client_socket].encryption_cipher)
         if message_dict["message_type"] == "-TEXT-":
-            self.broadcast(client_socket, message_bytes)
+            self.broadcast(client_socket, cbor2.dumps(message_dict))
         else:
             print("other message")
 
@@ -76,8 +75,10 @@ class ChatServer:
     def broadcast(self, client_socket, message_bytes):
         if len(self.clients) > 0:
             for key, _ in self.write_selector.select(0):
-                if key.fileobj is not client_socket:
-                    key.fileobj.send(message_bytes)
+                current_socket = key.fileobj
+                if current_socket is not client_socket:
+                    encryption_cipher = self.clients[current_socket].encryption_cipher
+                    encrypt_and_send(current_socket, message_bytes, encryption_cipher)
             print("broadcast:", message_bytes)
 
     def run(self):
@@ -95,9 +96,7 @@ class ChatServer:
                     self.write_selector.unregister(socket)
                     self.clients.pop(socket)
                     socket.close()
-                    message_bytes = message_to_bytes("-DISCONNECT-", {
-                        "user": name
-                    })
+                    message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
                     self.broadcast(socket, message_bytes)
 
 def message_to_bytes(message_type, values_dict):
@@ -109,6 +108,25 @@ def message_to_bytes(message_type, values_dict):
     message_dict["message_type"] = message_type
     message_bytes = cbor2.dumps(message_dict)
     return message_bytes
+
+def encrypt_and_send(client_socket, message_bytes, encryption_cipher):
+    """
+    Encrypts the given message with the given cipher
+    and sends it across the given socket
+    """
+    encrypted_message = server_encryption.encrypt_message(message_bytes, encryption_cipher)
+    client_socket.send(encrypted_message)
+
+def receive_and_decrypt(client_socket, encryption_cipher):
+    """
+    Receives a new message from the given socket
+    and decrypts it with the given cipher
+    Returns the decrypted message dictionary
+    """
+    encrypted_message = client_socket.recv(1024)
+    message_bytes = server_encryption.decrypt_message(encrypted_message, encryption_cipher)
+    message_dict = cbor2.loads(message_bytes)
+    return message_dict
 
 def get_server_address():
     hostname = socket.gethostname()
