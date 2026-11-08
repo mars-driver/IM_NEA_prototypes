@@ -1,14 +1,12 @@
-import ecdsa
-from hashlib import sha256
+import ecdsa # elliptic curve digital signature algorithm (for encryption)
+from hashlib import sha256 # the hash function used
 
 KEY = ecdsa.SigningKey.generate(ecdsa.SECP256k1, hashfunc=sha256)
 SERVER_PRIVATE_KEY = KEY.to_string().hex() # for server
 SERVER_PUBLIC_KEY = KEY.verifying_key.to_string().hex() # for client
 
-# this file is copied to the server directory
 with open("server_private_key.txt", "w") as file:
-    file.write(SERVER_PRIVATE_KEY)
+    file.write(SERVER_PRIVATE_KEY) # this file is copied to the server directory
 
-# this file is copied to the client directory
 with open("server_public_key.txt", "w") as file:
-    file.write(SERVER_PUBLIC_KEY)
+    file.write(SERVER_PUBLIC_KEY) # this file is copied to the client directory
