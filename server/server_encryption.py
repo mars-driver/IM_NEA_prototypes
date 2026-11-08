@@ -18,13 +18,13 @@ SERVER_PRIVATE_KEY = ecdsa.SigningKey.from_string(SERVER_PRIVATE_KEY, curve=CURV
 def initial_connection(client_public_key):
     server_private_key = ecdsa.SigningKey.generate(CURVE)
     server_public_key = server_private_key.verifying_key
-    both_keys, signature = create_signature(client_public_key, server_public_key)
-    return server_private_key, server_public_key, both_keys, signature
+    signature = create_signature(client_public_key, server_public_key)
+    return server_private_key, server_public_key, signature
 
 def create_signature(client_public_key, server_public_key):
     both_keys = key_to_string(client_public_key) + key_to_string(server_public_key) # concatenated
     signature = SERVER_PRIVATE_KEY.sign_deterministic(both_keys)
-    return both_keys, signature
+    return signature
 
 def compute_shared_key(server_private_key, client_public_key):
     server_ecdh = ecdsa.ECDH(CURVE, server_private_key, client_public_key)

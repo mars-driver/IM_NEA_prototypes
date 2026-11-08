@@ -8,7 +8,7 @@ import os
 CURVE = ecdsa.SECP256k1 # y^2 = x^3 - 7
 CONNECTION_SALT='client-server'.encode() # common string to salt key generation
 
-with open("server_public_key.txt", "r") as file:
+with open("server_public_key.txt") as file:
     SERVER_PUBLIC_KEY = file.readline()
 
 SERVER_PUBLIC_KEY = bytes.fromhex(SERVER_PUBLIC_KEY)
@@ -19,7 +19,8 @@ def generate_new_keys():
     client_public = client_private.verifying_key
     return client_private, client_public
 
-def verify_server(signature, both_keys):
+def verify_server(signature, server_public_key, client_public_key):
+    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key)  # concatenated
     SERVER_PUBLIC_KEY.verify(signature, both_keys)
 
 def compute_shared_key(client_private_key, server_public_key):
