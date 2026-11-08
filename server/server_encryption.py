@@ -2,6 +2,7 @@ from chacha20poly1305 import ChaCha20Poly1305
 import ecdsa
 from hashlib import sha256
 import hmac
+from os import urandom
 
 # CONSTANTS
 CURVE = ecdsa.SECP256k1 # y^2 = x^3 - 7
@@ -47,15 +48,26 @@ def generate_cipher(server_private_key, client_public_key):
     encryption_cipher = ChaCha20Poly1305(encryption_key)
     return encryption_cipher
 
+def encrypt_message(message_bytes, encryption_cipher):
+    """
+    A function to encrypt messages using the encryption cipher
+    Takes the message in bytes and the cipher to use as parameters
+    Returns the encrypted message
+    """
+    n_once = urandom(12)  # always different random for each message sent
+    encrypted_message = encryption_cipher.encrypt(n_once, message_bytes)
+    encrypted_message = n_once + encrypted_message
+    return encrypted_message
+
 def decrypt_message(encrypted_message, encryption_cipher):
     """
     A function to decrypt messages using the encryption cipher
+    Takes an encrypted message and the cipher used as parameters
+    Returns the decrypted message in bytes
     """
     n_once = encrypted_message[:12]
     message = encrypted_message[12:]
     message_bytes = encryption_cipher.decrypt(n_once, message)
-    print("message decrypted")
-    print(message_bytes)
     return message_bytes
 
 def key_to_string(key):

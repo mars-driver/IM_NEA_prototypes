@@ -49,11 +49,24 @@ def generate_cipher(client_private_key, server_public_key):
 def encrypt_message(message_bytes, encryption_cipher):
     """
     A function to encrypt messages using the encryption cipher
+    Takes the message in bytes and the cipher to use as parameters
+    Returns the encrypted message
     """
     n_once = urandom(12)  # always different random for each message sent
     encrypted_message = encryption_cipher.encrypt(n_once, message_bytes)
     encrypted_message = n_once + encrypted_message
     return encrypted_message
+
+def decrypt_message(encrypted_message, encryption_cipher):
+    """
+    A function to decrypt messages using the encryption cipher
+    Takes an encrypted message and the cipher used as parameters
+    Returns the decrypted message in bytes
+    """
+    n_once = encrypted_message[:12]
+    message = encrypted_message[12:]
+    message_bytes = encryption_cipher.decrypt(n_once, message)
+    return message_bytes
 
 def key_to_string(key):
     """
