@@ -26,7 +26,7 @@ def create_signature(client_public_key, server_public_key):
     """
     A function which uses the client and server's public keys to create a signature
     """
-    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key) # concatenated
+    both_keys = key_to_string(client_public_key) + key_to_string(server_public_key) # concatenates the private keys
     signature = SERVER_PRIVATE_KEY.sign_deterministic(both_keys)
     return signature
 
