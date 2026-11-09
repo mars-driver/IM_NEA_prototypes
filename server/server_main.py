@@ -16,5 +16,3 @@ assert currenthost == host
 # MAIN PROGRAM
 server = server.ChatServer(currenthost, MY_PORT)
 server.run()
-
-#TODO note: mostly works except client 1 crashes when client 2 joins and then client 1 attempts to send a msg ???
