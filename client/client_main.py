@@ -1,13 +1,10 @@
 import client
 
 # CONSTANTS
-HOMEHOST = "192.168.1.122"
-SCHOOLHOST = "10.56.84.65"
-LOCALHOST = "127.0.0.1"
-GRANNYHOST = "192.168.1.138"
-MY_PORT = 13108
+homeserver_ip = "192.168.1.122"
+schoolserver_ip = "10.56.80.136"
+localhost = "127.0.0.1"
+my_port = 13108
 
-currenthost = HOMEHOST
-
-client = client.ChatClient(currenthost, MY_PORT)
+client = client.ChatClient(homeserver_ip, my_port)
 client.connect()
