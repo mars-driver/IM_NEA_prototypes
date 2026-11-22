@@ -93,10 +93,8 @@ class ChatServer:
             room_object = self.chatrooms[room_id]
             room_object.remove_member(client_socket)
             message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
-            self.broadcast(client_socket, message_bytes, room_id) #todo do i send this or not
+            self.broadcast(client_socket, message_bytes, room_id)
             client_object.current_room_id = None
-            message_bytes = message_to_bytes("-KILL-THREAD-", {})
-            #encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
         elif message_type == "-CURRENT-ROOM-ID-":
             room_id = message_dict["room_id"]
