@@ -86,6 +86,7 @@ class ChatServer:
         elif message_type == "-USERNAME-":
             username = message_dict["username"]
             client_object.name = username
+            print("Client's username is", username)
 
         elif message_type == "-LEAVE-ROOM-":
             name = client_object.name
@@ -95,6 +96,7 @@ class ChatServer:
             message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
             self.broadcast(client_socket, message_bytes, room_id)
             client_object.current_room_id = None
+            print(name, "left room", room_id)
 
         elif message_type == "-CURRENT-ROOM-ID-":
             room_id = message_dict["room_id"]
@@ -105,7 +107,7 @@ class ChatServer:
                 client_name = client_object.name
                 message_bytes = message_to_bytes("-JOIN-", {"user": client_name})
                 self.broadcast(client_socket, message_bytes, room_id)
-            print("room changed to", client_object.current_room_id)
+            print(client_object.name, "joined room", client_object.current_room_id)
 
         elif message_type == "-GET-ROOM-ID-":
             room_id = client_object.current_room_id
