@@ -45,30 +45,53 @@ class ChatRoom:
 
 class ChatServer:
     def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.socket = None
-        self.clients = {}
-        self.chatrooms = {}
-        self.read_selector = selectors.DefaultSelector()
-        self.write_selector = selectors.DefaultSelector()
+        self.__host = host
+        self.__port = port
+        self.__socket = None
+        self.__clients = {}
+        self.__chatrooms = {}
+        self.__read_selector = selectors.DefaultSelector()
+        self.__write_selector = selectors.DefaultSelector()
+
+    def get_host(self):
+        return self.__host
+    def get_port(self):
+        return self.__port
+    def get_socket(self):
+        return self.__socket
+    def get_clients(self):
+        return self.__clients
+    def get_chatrooms(self):
+        return self.__chatrooms
+    def get_read_selector(self):
+        return self.__read_selector
+    def get_write_selector(self):
+        return self.__write_selector
+    def set_socket(self, new_socket):
+        self.__socket = new_socket
+    def add_client(): # todo
+        pass
+    def add_chatroom(self): # todo
+        pass
+        
 
     def init_server(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((self.host, self.port))
-        self.socket.listen()
-        print(f"Server is listening on port {self.port}...")
-        self.read_selector.register(self.socket, selectors.EVENT_READ, self.accept_connection)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_socket(server_socket)
+        server_socket.bind((self.get_host(), self.get_port()))
+        server_socket.listen()
+        print(f"Server is listening on port {self.get_port()}...")
+        self.get_read_selector().register(server_socket, selectors.EVENT_READ, self.accept_connection)
 
     def accept_connection(self, server_socket):
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
 
-        self.clients[client_socket] = Client()
-        client_object = self.clients[client_socket]
-        self.read_selector.register(client_socket, selectors.EVENT_READ, self.receive_message)
-        self.write_selector.register(client_socket, selectors.EVENT_WRITE)
+        self.get_clients()[client_socket] = Client()
+        client_object = self.get_clients()[client_socket]
+        self.get_read_selector().register(client_socket, selectors.EVENT_READ, self.receive_message)
+        self.get_write_selector().register(client_socket, selectors.EVENT_WRITE)
 
         # exchanging of keys
         key_bytes = client_socket.recv(1024)
@@ -88,7 +111,7 @@ class ChatServer:
 
 
     def receive_message(self, client_socket):
-        client_object = self.clients[client_socket]
+        client_object = self.get_clients()[client_socket]
         client_encryption_cipher = client_object.get_encryption_cipher()
         message_dict = receive_and_decrypt(client_socket, client_encryption_cipher)
         message_type = message_dict["message_type"]
@@ -105,7 +128,7 @@ class ChatServer:
         elif message_type == "-LEAVE-ROOM-":
             name = client_object.get_name()
             room_id = client_object.get_current_room_id()
-            room_object = self.chatrooms[room_id]
+            room_object = self.get_chatrooms()[room_id]
             room_object.remove_member(client_socket)
             message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
             self.broadcast(client_socket, message_bytes, room_id)
@@ -116,7 +139,7 @@ class ChatServer:
             room_id = message_dict["room_id"]
             client_object.set_current_room_id(room_id)
             if room_id is not None:
-                room_object = self.chatrooms[room_id]
+                room_object = self.get_chatrooms()[room_id]
                 room_object.add_member(client_socket)
                 client_name = client_object.get_name()
                 message_bytes = message_to_bytes("-JOIN-", {"user": client_name})
@@ -137,7 +160,7 @@ class ChatServer:
         elif message_type == "-CHATROOMS-":
             print("sending chatrooms to client", client_object.get_name())
             chatrooms_list = []
-            for room in self.chatrooms.values(): # list of chatroom objects
+            for room in self.get_chatrooms().values(): # list of chatroom objects
                 room_id = room.get_room_id()
                 room_dict = self.get_room_details(room_id)
                 chatrooms_list.append(room_dict)
@@ -148,11 +171,11 @@ class ChatServer:
             print("other message")
 
     def get_room_details(self, room_id):
-        room = self.chatrooms[room_id]
+        room = self.get_chatrooms()[room_id]
         current_members = room.get_members()  # list of client sockets
         current_usernames = []  # empty list that will contain list of usernames
         for current_socket in current_members:
-            current_client_object = self.clients[current_socket]  # the current client object
+            current_client_object = self.get_clients()[current_socket]  # the current client object
             username = current_client_object.get_name()  # the username of the client object
             current_usernames.append(username)
         room_dict = {
@@ -164,12 +187,12 @@ class ChatServer:
         return room_dict
 
     def broadcast(self, current_client_socket, message_bytes, room_id):
-        room_object = self.chatrooms[room_id] # todo ???
+        room_object = self.get_chatrooms()[room_id] # todo ???
         members = room_object.get_members()
         if len(members) > 0:
             for client_socket in members:
                 if client_socket is not current_client_socket:
-                    encryption_cipher = self.clients[client_socket].get_encryption_cipher()
+                    encryption_cipher = self.get_clients()[client_socket].get_encryption_cipher()
                     encrypt_and_send(client_socket, message_bytes, encryption_cipher)
             print("broadcast:", message_bytes, "to room", room_id)
 
@@ -177,21 +200,21 @@ class ChatServer:
         self.init_server()
         print("Running server...")
         while True:
-            for key, _ in self.read_selector.select():
+            for key, _ in self.get_read_selector().select():
                 socket, callback = key.fileobj, key.data
                 try:
                     callback(socket)
                 except ConnectionResetError:
-                    name = self.clients[socket].get_name()
+                    name = self.get_clients()[socket].get_name()
                     print("socket error", name)
-                    room_id = self.clients[socket].get_current_room_id()
-                    self.read_selector.unregister(socket)
-                    self.write_selector.unregister(socket)
-                    self.clients.pop(socket)
+                    room_id = self.get_clients()[socket].get_current_room_id()
+                    self.get_read_selector().unregister(socket)
+                    self.get_write_selector().unregister(socket)
+                    self.get_clients().pop(socket)
                     socket.close()
                     message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
                     if room_id is not None:
-                        self.chatrooms[room_id].remove_member(socket)
+                        self.get_chatrooms()[room_id].remove_member(socket)
                         self.broadcast(socket, message_bytes, room_id)
 
 def message_to_bytes(message_type, values_dict):
