@@ -5,9 +5,23 @@ import server_encryption
 
 class Client:
     def __init__(self):
-        self.encryption_cipher = None
-        self.name = None
-        self.current_room_id = None
+        self.__encryption_cipher = None
+        self.__name = None
+        self.__current_room_id = None
+
+    def get_encryption_cipher(self):
+        return self.__encryption_cipher
+    def get_name(self):
+        return self.__name
+    def get_current_room_id(self):
+        return self.__current_room_id
+    def set_encryption_cipher(self, new_encryption_cipher):
+        self.__encryption_cipher = new_encryption_cipher
+    def set_name(self, new_name):
+        self.__name = new_name
+    def set_current_room_id(self, new_room_id):
+        self.__current_room_id = new_room_id
+        
 
 class ChatRoom:
     def __init__(self, new_room_id, new_name, new_host):
@@ -69,59 +83,59 @@ class ChatServer:
         })
         client_socket.send(message_bytes)
         encryption_cipher = server_encryption.generate_cipher(server_private_key, client_public_key)
-        client_object.encryption_cipher = encryption_cipher
+        client_object.set_encryption_cipher(encryption_cipher)
         print("Encryption key established.")
 
 
     def receive_message(self, client_socket):
         client_object = self.clients[client_socket]
-        client_encryption_cipher = client_object.encryption_cipher
+        client_encryption_cipher = client_object.get_encryption_cipher()
         message_dict = receive_and_decrypt(client_socket, client_encryption_cipher)
         message_type = message_dict["message_type"]
 
         if message_type == "-TEXT-":
-            room_id = client_object.current_room_id
+            room_id = client_object.get_current_room_id()
             self.broadcast(client_socket, cbor2.dumps(message_dict), room_id)
 
         elif message_type == "-USERNAME-":
             username = message_dict["username"]
-            client_object.name = username
+            client_object.set_name(username)
             print("Client's username is", username)
 
         elif message_type == "-LEAVE-ROOM-":
-            name = client_object.name
-            room_id = client_object.current_room_id
+            name = client_object.get_name()
+            room_id = client_object.get_current_room_id()
             room_object = self.chatrooms[room_id]
             room_object.remove_member(client_socket)
             message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
             self.broadcast(client_socket, message_bytes, room_id)
-            client_object.current_room_id = None
+            client_object.set_current_room_id(None)
             print(name, "left room", room_id)
 
         elif message_type == "-CURRENT-ROOM-ID-":
             room_id = message_dict["room_id"]
-            client_object.current_room_id = room_id
+            client_object.set_current_room_id(room_id)
             if room_id is not None:
                 room_object = self.chatrooms[room_id]
                 room_object.add_member(client_socket)
-                client_name = client_object.name
+                client_name = client_object.get_name()
                 message_bytes = message_to_bytes("-JOIN-", {"user": client_name})
                 self.broadcast(client_socket, message_bytes, room_id)
-            print(client_object.name, "joined room", client_object.current_room_id)
+            print(client_object.get_name(), "joined room", client_object.get_current_room_id())
 
         elif message_type == "-GET-ROOM-ID-":
-            room_id = client_object.current_room_id
+            room_id = client_object.get_current_room_id()
             message_bytes = message_to_bytes("-ROOM-ID-", {"room_id": room_id})
             encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
         elif message_type == "-ROOM-DETAILS-":
-            room_id = client_object.current_room_id
+            room_id = client_object.get_current_room_id()
             room_dict = self.get_room_details(room_id)
             message_bytes = message_to_bytes("-ROOM-DETAILS-", {"room_dict": room_dict})
             encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
         elif message_type == "-CHATROOMS-":
-            print("sending chatrooms to client", client_object.name)
+            print("sending chatrooms to client", client_object.get_name())
             chatrooms_list = []
             for room in self.chatrooms.values(): # list of chatroom objects
                 room_id = room.get_room_id()
@@ -139,7 +153,7 @@ class ChatServer:
         current_usernames = []  # empty list that will contain list of usernames
         for current_socket in current_members:
             current_client_object = self.clients[current_socket]  # the current client object
-            username = current_client_object.name  # the username of the client object
+            username = current_client_object.get_name()  # the username of the client object
             current_usernames.append(username)
         room_dict = {
             "id": room.get_room_id(),
@@ -155,7 +169,7 @@ class ChatServer:
         if len(members) > 0:
             for client_socket in members:
                 if client_socket is not current_client_socket:
-                    encryption_cipher = self.clients[client_socket].encryption_cipher
+                    encryption_cipher = self.clients[client_socket].get_encryption_cipher()
                     encrypt_and_send(client_socket, message_bytes, encryption_cipher)
             print("broadcast:", message_bytes, "to room", room_id)
 
@@ -168,9 +182,9 @@ class ChatServer:
                 try:
                     callback(socket)
                 except ConnectionResetError:
-                    name = self.clients[socket].name
+                    name = self.clients[socket].get_name()
                     print("socket error", name)
-                    room_id = self.clients[socket].current_room_id
+                    room_id = self.clients[socket].get_current_room_id()
                     self.read_selector.unregister(socket)
                     self.write_selector.unregister(socket)
                     self.clients.pop(socket)
