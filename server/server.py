@@ -1,6 +1,7 @@
 import socket
 import selectors
 import cbor2
+import time
 import server_encryption
 
 class Client:
@@ -82,6 +83,7 @@ class ChatServer:
         if message_type == "-TEXT-":
             room_id = client_object.current_room_id
             message_dict["sender"] = client_object.name
+            message_dict["time_sent"] = time.time()
             self.broadcast(client_socket, cbor2.dumps(message_dict), room_id)
 
         elif message_type == "-USERNAME-":
