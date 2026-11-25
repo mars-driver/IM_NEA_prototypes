@@ -122,19 +122,13 @@ class ChatServer:
                 self.broadcast(client_socket, message_bytes, room_id)
             print(client_object.name, "joined room", client_object.current_room_id)
 
-        elif message_type == "-GET-ROOM-ID-": #todo not needed?
-            room_id = client_object.current_room_id
-            message_bytes = message_to_bytes("-ROOM-ID-", {"room_id": room_id})
-            encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
-
-        elif message_type == "-ROOM-DETAILS-": #todo not needed?
+        elif message_type == "-GET-ROOM-DETAILS-":
             room_id = client_object.current_room_id
             room_dict = self.get_room_details(room_id)
             message_bytes = message_to_bytes("-ROOM-DETAILS-", {"room_dict": room_dict})
             encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
         elif message_type == "-GET-CHATROOMS-":
-            print("sending chatrooms to client", client_object.name)
             chatrooms_list = []
             for room in self.chatrooms.values(): # list of chatroom objects
                 room_id = room.get_room_id()
@@ -146,7 +140,7 @@ class ChatServer:
         else:
             print("other message")
 
-    def get_room_details(self, room_id): # todo not needed?
+    def get_room_details(self, room_id):
         room = self.chatrooms[room_id]
         current_usernames = room.get_members_names(self)  # list of client sockets
         room_dict = {
@@ -158,14 +152,13 @@ class ChatServer:
         return room_dict
 
     def broadcast(self, current_client_socket, message_bytes, room_id):
-        room_object = self.chatrooms[room_id] # todo ???
+        room_object = self.chatrooms[room_id]
         members = room_object.get_members_objects()
         if len(members) > 0:
             for client_socket in members:
                 if client_socket is not current_client_socket:
                     encryption_cipher = self.clients[client_socket].encryption_cipher
                     encrypt_and_send(client_socket, message_bytes, encryption_cipher)
-            print("broadcast:", message_bytes, "to room", room_id)
 
     def run(self):
         self.init_server()
@@ -183,9 +176,11 @@ class ChatServer:
                     self.write_selector.unregister(socket)
                     self.clients.pop(socket)
                     socket.close()
-                    message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
                     if room_id is not None:
-                        self.chatrooms[room_id].remove_member(socket)
+                        room_object = self.chatrooms[room_id]
+                        room_object.remove_member(socket)
+                        members_list = room_object.get_members_names(self)
+                        message_bytes = message_to_bytes("-DISCONNECT-", {"user": name, "members": members_list})
                         self.broadcast(socket, message_bytes, room_id)
 
 def message_to_bytes(message_type, values_dict):
@@ -203,7 +198,6 @@ def encrypt_and_send(client_socket, message_bytes, encryption_cipher):
     Encrypts the given message with the given cipher
     and sends it across the given socket
     """
-    print("encrypting and sending:", message_bytes)
     encrypted_message = server_encryption.encrypt_message(message_bytes, encryption_cipher)
     client_socket.send(encrypted_message)
 
