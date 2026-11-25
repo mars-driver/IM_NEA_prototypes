@@ -23,8 +23,16 @@ class ChatRoom:
         return self.__name
     def get_host(self):
         return self.__host
-    def get_members(self):
+    def get_members_objects(self):
         return self.__members
+    def get_members_names(self, server_object):
+        current_members = self.get_members_objects()  # list of client sockets
+        current_usernames = []  # empty list that will contain list of usernames
+        for current_socket in current_members:
+            current_client_object = server_object.clients[current_socket]  # the current client object
+            username = current_client_object.name  # the username of the client object
+            current_usernames.append(username)
+        return current_usernames
     def add_member(self, new_user):
         self.__members.append(new_user)
     def remove_member(self, old_user):
@@ -96,34 +104,36 @@ class ChatServer:
             room_id = client_object.current_room_id
             room_object = self.chatrooms[room_id]
             room_object.remove_member(client_socket)
-            message_bytes = message_to_bytes("-DISCONNECT-", {"user": name})
+            members_list = room_object.get_members_names(self)
+            message_bytes = message_to_bytes("-DISCONNECT-", {"user": name, "members": members_list})
             self.broadcast(client_socket, message_bytes, room_id)
             client_object.current_room_id = None
             print(name, "left room", room_id)
 
-        elif message_type == "-CURRENT-ROOM-ID-":
+        elif message_type == "-SET-ROOM-ID-":
             room_id = message_dict["room_id"]
             client_object.current_room_id = room_id
             if room_id is not None:
                 room_object = self.chatrooms[room_id]
                 room_object.add_member(client_socket)
+                members_names = room_object.get_members_names(self)
                 client_name = client_object.name
-                message_bytes = message_to_bytes("-JOIN-", {"user": client_name})
+                message_bytes = message_to_bytes("-JOIN-", {"user": client_name, "members": members_names})
                 self.broadcast(client_socket, message_bytes, room_id)
             print(client_object.name, "joined room", client_object.current_room_id)
 
-        elif message_type == "-GET-ROOM-ID-":
+        elif message_type == "-GET-ROOM-ID-": #todo not needed?
             room_id = client_object.current_room_id
             message_bytes = message_to_bytes("-ROOM-ID-", {"room_id": room_id})
             encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
-        elif message_type == "-ROOM-DETAILS-":
+        elif message_type == "-ROOM-DETAILS-": #todo not needed?
             room_id = client_object.current_room_id
             room_dict = self.get_room_details(room_id)
             message_bytes = message_to_bytes("-ROOM-DETAILS-", {"room_dict": room_dict})
             encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
 
-        elif message_type == "-CHATROOMS-":
+        elif message_type == "-GET-CHATROOMS-":
             print("sending chatrooms to client", client_object.name)
             chatrooms_list = []
             for room in self.chatrooms.values(): # list of chatroom objects
@@ -136,14 +146,9 @@ class ChatServer:
         else:
             print("other message")
 
-    def get_room_details(self, room_id):
+    def get_room_details(self, room_id): # todo not needed?
         room = self.chatrooms[room_id]
-        current_members = room.get_members()  # list of client sockets
-        current_usernames = []  # empty list that will contain list of usernames
-        for current_socket in current_members:
-            current_client_object = self.clients[current_socket]  # the current client object
-            username = current_client_object.name  # the username of the client object
-            current_usernames.append(username)
+        current_usernames = room.get_members_names(self)  # list of client sockets
         room_dict = {
             "id": room.get_room_id(),
             "name": room.get_name(),
@@ -154,7 +159,7 @@ class ChatServer:
 
     def broadcast(self, current_client_socket, message_bytes, room_id):
         room_object = self.chatrooms[room_id] # todo ???
-        members = room_object.get_members()
+        members = room_object.get_members_objects()
         if len(members) > 0:
             for client_socket in members:
                 if client_socket is not current_client_socket:
