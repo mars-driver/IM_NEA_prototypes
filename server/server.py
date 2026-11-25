@@ -3,6 +3,7 @@ import selectors
 import cbor2
 import time
 import server_encryption
+from database import database_calls
 
 class Client:
     def __init__(self):
@@ -136,7 +137,47 @@ class ChatServer:
         message_dict = receive_and_decrypt(client_socket, client_encryption_cipher)
         message_type = message_dict["message_type"]
 
-        if message_type == "-TEXT-":
+        if message_type == "-SIGN-UP-":
+            username = message_dict["username"]
+            if not database_calls.username_in_db(username):
+                email_address = message_dict["email"]
+                hashed_password = message_dict["hashed_password"]
+                salt = message_dict["salt"]
+                database_calls.add_user(username, email_address, hashed_password, salt)
+                response_dict = {"outcome": "-SUCCESS-"}
+            else:
+                response_dict = {"outcome": "-ERROR-"}
+            message_bytes = message_to_bytes("-SIGN-UP-RESULT-", response_dict)
+            encrypt_and_send(client_socket, message_bytes, client_encryption_cipher)
+
+        elif message_type == "-LOG-IN-":
+            username = message_dict["username"]
+            if database_calls.username_in_db(username):
+                user_dict = database_calls.get_user(username)
+                print("user:", user_dict)
+                print("locked:", user_dict["locked"])
+                if not user_dict["locked"]:
+                    response_bytes = message_to_bytes("-SALT-", {"salt": user_dict["salt"]})
+                    encrypt_and_send(client_socket, response_bytes, client_encryption_cipher)
+                    response_dict = receive_and_decrypt(client_socket, client_encryption_cipher)
+                    assert response_dict["message_type"] == "-HASHED-PASSWORD-"
+                    hashed_password = response_dict["hashed_password"]
+                    if hashed_password == user_dict["hashed_password"]:
+                        result = "-SUCCESS-"
+                    else:
+                        result = "-FAILURE-"
+                    result_bytes = message_to_bytes("-RESULT-", {"result": result})
+                    encrypt_and_send(client_socket, result_bytes, client_encryption_cipher)
+                else:
+                    #response_dict = {"outcome": "-LOCKED-"}
+                    result_bytes = message_to_bytes("-ERROR-", {"outcome": "-LOCKED-"})
+                    encrypt_and_send(client_socket, result_bytes, client_encryption_cipher)
+            else:
+                #response_dict = {"outcome": "-NOT-FOUND-"}
+                result_bytes = message_to_bytes("-ERROR-", {"outcome": "-NOT-FOUND-"})
+                encrypt_and_send(client_socket, result_bytes, client_encryption_cipher)
+
+        elif message_type == "-TEXT-":
             room_id = client_object.get_current_room_id()
             message_dict["sender"] = client_object.get_name()
             message_dict["time_sent"] = time.time()
@@ -187,6 +228,7 @@ class ChatServer:
 
         else:
             print("other message")
+            print(message_dict)
 
     def get_room_details(self, room_id):
         room = self.get_chatrooms()[room_id]
@@ -242,7 +284,7 @@ def message_to_bytes(message_type, values_dict):
     message_bytes = cbor2.dumps(message_dict)
     return message_bytes
 
-def encrypt_and_send(client_socket, message_bytes, encryption_cipher):
+def encrypt_and_send(client_socket, message_bytes, encryption_cipher): # todo change to take client object?
     """
     Encrypts the given message with the given cipher
     and sends it across the given socket
@@ -250,7 +292,7 @@ def encrypt_and_send(client_socket, message_bytes, encryption_cipher):
     encrypted_message = server_encryption.encrypt_message(message_bytes, encryption_cipher)
     client_socket.send(encrypted_message)
 
-def receive_and_decrypt(client_socket, encryption_cipher):
+def receive_and_decrypt(client_socket, encryption_cipher): # todo same as above
     """
     Receives a new message from the given socket
     and decrypts it with the given cipher
