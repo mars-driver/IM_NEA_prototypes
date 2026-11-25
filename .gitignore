@@ -2,3 +2,4 @@
 /encryption/server_public_key.txt
 /encryption/server_private_key.txt
 /client/server_public_key.txt
+/database/database.db
