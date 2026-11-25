@@ -43,8 +43,8 @@ class ChatRoom:
         current_members = self.get_members_objects()  # list of client sockets
         current_usernames = []  # empty list that will contain list of usernames
         for current_socket in current_members:
-            current_client_object = server_object.clients[current_socket]  # the current client object
-            username = current_client_object.name  # the username of the client object
+            current_client_object = server_object.get_clients()[current_socket]  # the current client object
+            username = current_client_object.get_name()  # the username of the client object
             current_usernames.append(username)
         return current_usernames
     def add_member(self, new_user):
@@ -78,11 +78,23 @@ class ChatServer:
         return self.__write_selector
     def set_socket(self, new_socket):
         self.__socket = new_socket
-    def add_client(): # todo
-        pass
-    def add_chatroom(self): # todo
-        pass
-
+    def add_client(self, client_socket, client_object):
+        self.__clients[client_socket] = client_object
+    def remove_client(self, client_socket):
+        self.__clients.pop(client_socket)
+    def add_chatroom(self, room_id, room_object):
+        self.__chatrooms[room_id] = room_object
+    def add_to_selector(self, selector_type, current_socket, server_function):
+        if selector_type == "read":
+            self.__read_selector.register(current_socket, selectors.EVENT_READ, server_function)
+        elif selector_type == "write":
+            self.__write_selector.register(current_socket, selectors.EVENT_WRITE)
+        elif selector_type == "both":
+            self.__read_selector.register(current_socket, selectors.EVENT_READ, server_function)
+            self.__write_selector.register(current_socket, selectors.EVENT_WRITE)
+    def remove_from_selectors(self, client_socket):
+        self.__read_selector.unregister(client_socket)
+        self.__write_selector.unregister(client_socket)
 
     def init_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,17 +102,16 @@ class ChatServer:
         server_socket.bind((self.get_host(), self.get_port()))
         server_socket.listen()
         print(f"Server is listening on port {self.get_port()}...")
-        self.get_read_selector().register(server_socket, selectors.EVENT_READ, self.accept_connection)
+        self.add_to_selector("read", server_socket, self.accept_connection)
 
     def accept_connection(self, server_socket):
         client_socket, address = server_socket.accept()
         print(f"Connected with {str(address)}")
         print("Registering client...")
 
-        self.get_clients()[client_socket] = Client()
-        client_object = self.get_clients()[client_socket]
-        self.get_read_selector().register(client_socket, selectors.EVENT_READ, self.receive_message)
-        self.get_write_selector().register(client_socket, selectors.EVENT_WRITE)
+        client_object = Client()
+        self.add_client(client_socket, client_object)
+        self.add_to_selector("both", client_socket, self.receive_message)
 
         # exchanging of keys
         key_bytes = client_socket.recv(1024)
@@ -127,7 +138,7 @@ class ChatServer:
 
         if message_type == "-TEXT-":
             room_id = client_object.get_current_room_id()
-            message_dict["sender"] = client_object.name
+            message_dict["sender"] = client_object.get_name()
             message_dict["time_sent"] = time.time()
             self.broadcast(client_socket, cbor2.dumps(message_dict), room_id)
 
@@ -194,7 +205,8 @@ class ChatServer:
         if len(members) > 0:
             for client_socket in members:
                 if client_socket is not current_client_socket:
-                    encryption_cipher = self.get_clients()[client_socket].get_encryption_cipher()
+                    client_object = self.get_clients()[client_socket]
+                    encryption_cipher = client_object.get_encryption_cipher()
                     encrypt_and_send(client_socket, message_bytes, encryption_cipher)
 
     def run(self):
@@ -206,12 +218,12 @@ class ChatServer:
                 try:
                     callback(socket)
                 except ConnectionResetError:
-                    name = self.get_clients()[socket].get_name()
+                    client_object = self.get_clients()[socket]
+                    name = client_object.get_name()
                     print("socket error", name)
-                    room_id = self.get_clients()[socket].get_current_room_id()
-                    self.get_read_selector().unregister(socket)
-                    self.get_write_selector().unregister(socket)
-                    self.get_clients().pop(socket)
+                    room_id = client_object.get_current_room_id()
+                    self.remove_from_selectors(socket)
+                    self.remove_client(socket)
                     socket.close()
                     if room_id is not None:
                         room_object = self.get_chatrooms()[room_id]
